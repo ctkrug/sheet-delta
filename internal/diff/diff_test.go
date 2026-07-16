@@ -418,12 +418,25 @@ func TestResultMarshalsOpsAsNames(t *testing.T) {
 		t.Fatalf("ops did not marshal as names: %s", data)
 	}
 
-	var round Result
-	if err := json.Unmarshal(data, &round); err != nil {
+	// Decode the way the frontend does — ops as strings — rather than back
+	// into a Result. Nothing decodes an Op on this side of the boundary, so
+	// reading the payload as JS sees it is the contract worth pinning.
+	var wire struct {
+		Rows []struct {
+			Op string `json:"op"`
+		} `json:"rows"`
+		Summary Summary `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &wire); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if round.Summary != Diff(before, after).Summary {
-		t.Errorf("summary did not round-trip: %+v", round.Summary)
+	if wire.Summary != Diff(before, after).Summary {
+		t.Errorf("summary did not survive the encoding: %+v", wire.Summary)
+	}
+	for i, row := range wire.Rows {
+		if row.Op == "" {
+			t.Errorf("row %d encoded no op name: %s", i, data)
+		}
 	}
 }
 

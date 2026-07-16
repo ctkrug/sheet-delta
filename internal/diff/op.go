@@ -1,9 +1,6 @@
 package diff
 
-import (
-	"encoding/json"
-	"fmt"
-)
+import "fmt"
 
 // Op identifies how a row or column in the diff relates to the two sheets.
 type Op int
@@ -61,19 +58,4 @@ func (o Op) MarshalJSON() ([]byte, error) {
 		return nil, fmt.Errorf("diff: cannot marshal unknown op %d", int(o))
 	}
 	return encoded, nil
-}
-
-// UnmarshalJSON decodes an op name, keeping the JSON encoding round-trippable.
-func (o *Op) UnmarshalJSON(data []byte) error {
-	var name string
-	if err := json.Unmarshal(data, &name); err != nil {
-		return err
-	}
-	for op, n := range opNames {
-		if n == name {
-			*o = op
-			return nil
-		}
-	}
-	return fmt.Errorf("diff: unknown op %q", name)
 }
