@@ -72,8 +72,15 @@ export interface DiffResult {
  * honest to show instead of a blank screen.
  */
 export class SheetDeltaError extends Error {
-  constructor(message: string) {
+  /**
+   * The underlying failure, kept for diagnosis. Carried explicitly rather
+   * than via the standard `cause` option, which the ES2020 target predates.
+   */
+  readonly cause?: unknown;
+
+  constructor(message: string, cause?: unknown) {
     super(message);
     this.name = "SheetDeltaError";
+    this.cause = cause;
   }
 }
