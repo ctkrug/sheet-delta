@@ -41,15 +41,26 @@ func (o Op) String() string {
 	return fmt.Sprintf("Op(%d)", int(o))
 }
 
+// opJSON holds each op's encoded form. A large sheet marshals one op per
+// row, so the quoted bytes are built once here rather than allocated tens
+// of thousands of times.
+var opJSON = func() map[Op][]byte {
+	encoded := make(map[Op][]byte, len(opNames))
+	for op, name := range opNames {
+		encoded[op] = []byte(`"` + name + `"`)
+	}
+	return encoded
+}()
+
 // MarshalJSON encodes the op as its name. The frontend reads these values
 // to pick a highlight style, and a name survives reordering the constants
 // in a way that a bare integer would not.
 func (o Op) MarshalJSON() ([]byte, error) {
-	name, ok := opNames[o]
+	encoded, ok := opJSON[o]
 	if !ok {
 		return nil, fmt.Errorf("diff: cannot marshal unknown op %d", int(o))
 	}
-	return json.Marshal(name)
+	return encoded, nil
 }
 
 // UnmarshalJSON decodes an op name, keeping the JSON encoding round-trippable.
