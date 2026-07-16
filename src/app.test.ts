@@ -370,7 +370,8 @@ describe("createApp — error states", () => {
     expect(zones()[0].textContent).toContain("right.csv");
     expect(zones()[0].textContent).not.toContain("slow-wrong.csv");
     // The engine must be comparing the file the zone claims to hold.
-    const [before] = diffSheets.mock.calls.at(-1)!;
+    const calls = diffSheets.mock.calls;
+    const [before] = calls[calls.length - 1];
     expect(before.rows).toEqual([["1", "200"]]);
   });
 

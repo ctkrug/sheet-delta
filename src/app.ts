@@ -25,6 +25,12 @@ interface SideState {
   sheetName?: string;
   zone: Dropzone;
   picker: HTMLElement;
+  /**
+   * Which file this side is reading. Reading a workbook is slow enough to
+   * drop another one meanwhile, and the two reads can finish in either
+   * order, so each one checks it is still the current file before it lands.
+   */
+  load: number;
 }
 
 const SIDE_LABEL: Record<Side, string> = { before: "Before", after: "After" };
@@ -299,10 +305,12 @@ export function createApp(container: HTMLElement): App {
 
   const loadFile = async (side: Side, file: File): Promise<void> => {
     const state = sides[side];
+    const run = ++state.load;
     state.zone.setInvalid(false);
 
     try {
       const workbook = await parseFile(file);
+      if (run !== state.load) return; // a later file replaced this one
       state.workbook = workbook;
       // Default to the first sheet, or keep the current choice if the new
       // workbook happens to have a sheet by the same name.
@@ -314,6 +322,8 @@ export function createApp(container: HTMLElement): App {
       renderPicker(side);
       await compare();
     } catch (err) {
+      // A file the user already replaced must not report its failure.
+      if (run !== state.load) return;
       state.workbook = undefined;
       state.sheetName = undefined;
       state.zone.setInvalid(true);
@@ -345,7 +355,7 @@ export function createApp(container: HTMLElement): App {
     column.append(zone.element, picker);
     setupZones.append(column);
 
-    sides[side] = { zone, picker };
+    sides[side] = { zone, picker, load: 0 };
   }
 
   setView("empty", renderEmptyState());
