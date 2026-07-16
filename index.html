@@ -26,6 +26,89 @@
   </head>
   <body>
     <div id="app"></div>
+
+    <!--
+      Below the fold, and static rather than rendered by the app: this is the
+      part a search engine has to be able to read without running any script,
+      and the part someone who found the page from a search wants answered
+      before they trust it with a file.
+    -->
+    <section class="about">
+      <div class="about__inner">
+        <h2 class="about__title">How Redline compares two spreadsheets</h2>
+        <p>
+          Most tools that claim to diff a spreadsheet are text diffs wearing a costume. They
+          flatten each sheet into lines and compare the lines, so the moment row 40 moves to
+          row 41, both rows light up as changed even though not one character in them is
+          different. Sort your export a different way and the whole file reads as rewritten.
+        </p>
+        <p>
+          Redline treats the problem as two-dimensional, because a spreadsheet is. It matches
+          columns first, by header name, so a field inserted upstream shifts nothing after it.
+          Then it fingerprints every row by its contents and aligns the two sheets with a Myers
+          longest-common-subsequence pass, the same family of algorithm behind
+          <code>git diff</code>, run over rows instead of characters. A row's identity is what
+          it says, not where it sits, so a reorder is recognized as a reorder. Only once two
+          rows are established as the same row at two points in time does it compare their
+          cells, and only the cells that actually differ get marked.
+        </p>
+        <p>
+          What comes back is the grid you already know: added rows in green, removed rows struck
+          through in red, and each changed cell showing its old value beside the new one. The
+          tally across the top counts rows added, removed, changed and moved, and the cells that
+          really differ. You can download that view as a CSV in which a changed cell reads
+          <code>200 -&gt; 250</code>.
+        </p>
+
+        <h2 class="about__title">Questions</h2>
+        <dl class="faq">
+          <dt>How do I compare two Excel files and highlight the differences?</dt>
+          <dd>
+            Drop the older file on Before and the newer one on After. Redline reads both, lines
+            them up, and highlights every changed cell in place on the grid. There is nothing to
+            install and no account. If a workbook holds several sheets, a menu appears under the
+            file so you can pick which sheet to compare.
+          </dd>
+
+          <dt>Is there a CSV diff tool that works online?</dt>
+          <dd>
+            This is one, with a caveat worth stating plainly: "online" here means the page is on
+            the web, not that your data is. The comparison runs inside your tab as WebAssembly.
+            Once the page has loaded, no request carries your file anywhere, and you can watch
+            the network tab of your browser's dev tools stay silent to confirm it.
+          </dd>
+
+          <dt>How do I compare two spreadsheets for differences without uploading them?</dt>
+          <dd>
+            Use a tool that has no server to upload to. Redline's diff engine is Go compiled to
+            WebAssembly and ships with the page itself, so the file you drop is read by your own
+            browser and never sent. That is the difference between a privacy policy and a
+            privacy guarantee, and it matters when the sheet holds salary figures, customer
+            records, or anything else you are not allowed to paste into a website.
+          </dd>
+
+          <dt>Why does a normal text diff mark every row as changed?</dt>
+          <dd>
+            Because it compares line 1 against line 1, line 2 against line 2, and so on. Insert
+            a single row at the top and every line below it shifts by one, so every line now
+            differs from the line it is being compared against. Aligning rows by content instead
+            of position is the fix, and it is the reason this tool exists.
+          </dd>
+
+          <dt>What does it read, and how big can the files be?</dt>
+          <dd>
+            Files ending .csv, .xlsx and .xls, up to 100MB each. A 50,000-row comparison takes a
+            few seconds. Past 5,000 rows the grid draws the first 5,000 and offers a button for
+            the rest, which keeps the tab responsive on a large sheet.
+          </dd>
+        </dl>
+
+        <a class="button about__cta" href="https://github.com/ctkrug/sheet-delta">
+          View the source on GitHub
+        </a>
+      </div>
+    </section>
+
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

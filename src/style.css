@@ -51,7 +51,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  /* min-height, not height: the app fills the first screen, and the reference
+     copy below it grows the document rather than overflowing a fixed box. */
+  min-height: 100%;
 }
 
 body {
@@ -79,8 +81,9 @@ body {
     var(--space-2) var(--space-2);
 }
 
+/* The app owns the first screen exactly; the reference copy starts below it. */
 #app {
-  height: 100%;
+  min-height: 100vh;
 }
 
 .app {
@@ -926,6 +929,84 @@ a {
 .footer__more:hover {
   color: var(--accent);
   text-decoration-color: currentColor;
+}
+
+/* ---- about: the reference copy under the app --------------------------- */
+
+.about {
+  border-top: var(--rule);
+  padding: var(--space-8) var(--space-5);
+}
+
+/*
+ * Another sheet laid on the same drafting table, so the page stays one
+ * surface: the panel treatment matches the tool's, and the red margin rule
+ * down the left is the pen that names the product.
+ */
+.about__inner {
+  max-width: 68ch;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-6) var(--space-7);
+  background: var(--surface-1);
+  border: var(--rule);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard-lg);
+}
+
+.about__title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: var(--space-7) 0 var(--space-4);
+}
+
+.about__inner > .about__title:first-child {
+  margin-top: 0;
+}
+
+.about p {
+  margin: 0 0 var(--space-4);
+  color: var(--text);
+}
+
+.about code {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  padding: 1px var(--space-1);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+}
+
+.faq dt {
+  font-weight: 600;
+  margin-top: var(--space-5);
+  /* The question is what someone searched for: give it the pen. */
+  border-left: 3px solid var(--danger);
+  padding-left: var(--space-3);
+}
+
+.faq dd {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-3);
+  color: var(--text-muted);
+}
+
+.about__cta {
+  display: inline-block;
+  margin-top: var(--space-7);
+  text-decoration: none;
+}
+
+@media (max-width: 600px) {
+  .about {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .about__title {
+    font-size: 20px;
+  }
 }
 
 /* ---- responsive -------------------------------------------------------- */
