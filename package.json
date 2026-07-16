@@ -24,13 +24,15 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:wasm": "node scripts/smoke-wasm.mjs",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:browser": "node scripts/smoke-browser.mjs"
   },
   "dependencies": {
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "jsdom": "^25.0.0",
+    "playwright": "^1.61.1",
     "typescript": "^5.5.4",
     "vite": "^6.4.3",
     "vitest": "^3.2.7"
