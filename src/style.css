@@ -1,3 +1,11 @@
+/*
+ * Sheet Delta — blueprint / technical.
+ *
+ * A drafting table, not a SaaS dashboard: warm cream graph paper, ink-blue
+ * rules, monospace data, hard-edged stencil offsets instead of soft
+ * shadows. Tokens and rationale live in docs/DESIGN.md.
+ */
+
 :root {
   --bg: #f3efe4;
   --surface-1: #ffffff;
@@ -8,6 +16,12 @@
   --accent-support: #c05621;
   --success: #2f7a4f;
   --danger: #b3261e;
+
+  /* Tints for diff rows: the hue of their status, at paper strength. */
+  --tint-success: #e4f0e8;
+  --tint-danger: #f8e4e2;
+  --tint-changed: #e6eefa;
+  --tint-moved: #f7e9df;
 
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-ui: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
@@ -22,7 +36,10 @@
   --space-8: 64px;
 
   --radius: 4px;
+  --rule: 1px solid var(--accent);
+  --rule-faint: 1px solid rgba(30, 90, 168, 0.22);
   --shadow-hard: 2px 2px 0 rgba(27, 36, 48, 0.15);
+  --shadow-hard-lg: 4px 4px 0 rgba(27, 36, 48, 0.18);
   --transition: 150ms ease-out;
 }
 
@@ -34,195 +51,873 @@ html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
+  height: 100%;
 }
 
 body {
-  background: var(--bg);
-  background-image: linear-gradient(
-    to bottom,
-    rgba(30, 90, 168, 0.05) 1px,
-    transparent 1px
-  );
-  background-size: 100% var(--space-6);
   color: var(--text);
   font-family: var(--font-ui);
   font-size: 15px;
   line-height: 1.5;
+  /*
+   * The page is drafting paper: an 8px grid ruling with a heavier 32px
+   * line, over a warm radial wash so the surface has light in it rather
+   * than being a flat fill to the edges.
+   */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.75), transparent 60%),
+    linear-gradient(rgba(30, 90, 168, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 90, 168, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(30, 90, 168, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 90, 168, 0.04) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    var(--space-6) var(--space-6),
+    var(--space-6) var(--space-6),
+    var(--space-2) var(--space-2),
+    var(--space-2) var(--space-2);
 }
 
 #app {
+  height: 100%;
+}
+
+.app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
-a {
-  color: var(--accent);
+/* Available to any control that needs a label only a screen reader reads. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
-button {
+/* ---- controls ---------------------------------------------------------- */
+
+.button {
   font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 500;
-  color: var(--text);
-  background: var(--surface-1);
-  border: 1px solid var(--accent);
+  color: var(--surface-1);
+  background: var(--accent);
+  border: var(--rule);
   border-radius: var(--radius);
   box-shadow: var(--shadow-hard);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  min-height: 44px; /* touch target */
   cursor: pointer;
-  transition: transform var(--transition), box-shadow var(--transition),
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
     background var(--transition);
 }
 
-button:hover {
-  background: var(--surface-2);
+.button:hover {
+  background: #17488a;
 }
 
-button:active {
+/* The press physically depresses into its own shadow. */
+.button:active {
   transform: translate(2px, 2px);
   box-shadow: none;
 }
 
-button:focus-visible,
-a:focus-visible,
-[tabindex]:focus-visible {
+.button:disabled {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border-color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.button--ghost {
+  color: var(--accent);
+  background: var(--surface-1);
+}
+
+.button--ghost:hover {
+  background: var(--surface-2);
+}
+
+:where(button, a, select, input, [tabindex]):focus-visible {
   outline: 2px solid var(--accent-support);
   outline-offset: 2px;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow: none;
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
+
+/* ---- topbar and wordmark ----------------------------------------------- */
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--surface-2);
+  padding: var(--space-3) var(--space-5);
   background: var(--surface-1);
+  border-bottom: var(--rule);
+  box-shadow: 0 2px 0 rgba(27, 36, 48, 0.06);
 }
 
 .wordmark {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: -0.01em;
-  color: var(--text);
 }
 
 .wordmark__glyph {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
+  flex: none;
 }
 
 .wordmark__glyph path {
-  stroke-dasharray: 140;
-  stroke-dashoffset: 140;
-  animation: draw-glyph 900ms ease-out forwards;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 5;
+  stroke-linejoin: round;
+  /* The delta draws itself in, like a pen tracing it. Once, on load. */
+  stroke-dasharray: 132;
+  stroke-dashoffset: 132;
+  animation: trace-glyph 900ms ease-out forwards;
 }
 
-@keyframes draw-glyph {
+@keyframes trace-glyph {
   to {
     stroke-dashoffset: 0;
   }
 }
 
-.tagline {
+.wordmark__text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.wordmark__accent {
+  color: var(--accent);
+}
+
+/* ---- summary bar ------------------------------------------------------- */
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.summary__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface-1);
+  border: var(--rule-faint);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--text-muted);
+}
+
+.summary__item--added {
+  border-left-color: var(--success);
+}
+.summary__item--removed {
+  border-left-color: var(--danger);
+}
+.summary__item--changed {
+  border-left-color: var(--accent);
+}
+.summary__item--moved {
+  border-left-color: var(--accent-support);
+}
+
+.summary__value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  min-width: 1ch;
+}
+
+.summary__label {
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
+  text-transform: lowercase;
 }
 
-main {
+.summary__columns {
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  color: var(--accent-support);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px dashed var(--accent-support);
+  border-radius: var(--radius);
+}
+
+/* ---- layout ------------------------------------------------------------ */
+
+.main {
   flex: 1;
   display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   padding: var(--space-5);
+  min-height: 0; /* let .stage own the overflow, not the page */
 }
 
-.hero {
-  flex: 1;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  min-height: 60vh;
-}
-
-.dropzones {
-  flex: 1;
+.setup__zones {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
-  max-width: 1100px;
-  width: 100%;
 }
 
+.setup__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* The hero: whatever the stage is showing gets the bulk of the viewport. */
+.stage {
+  flex: 1;
+  display: flex;
+  min-height: 60vh;
+}
+
+.stage > * {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- drop zones -------------------------------------------------------- */
+
 .dropzone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 116px;
+  padding: var(--space-4);
+  font-family: var(--font-ui);
+  color: var(--text);
+  text-align: center;
+  background: var(--surface-1);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard);
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    transform var(--transition),
+    box-shadow var(--transition);
+}
+
+.dropzone:hover {
+  background: var(--surface-2);
+}
+
+.dropzone:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Dragging: the zone lifts and the border firms up to say "let go here". */
+.dropzone--dragging {
+  background: var(--tint-changed);
+  border-style: solid;
+  border-color: var(--accent);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-hard-lg);
+}
+
+.dropzone--loaded {
+  border-style: solid;
+  border-color: var(--success);
+}
+
+.dropzone--invalid {
+  border-color: var(--danger);
+  background: var(--tint-danger);
+}
+
+.dropzone__label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dropzone__hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.dropzone--loaded .dropzone__hint {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.dropzone__formats {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* ---- sheet picker ------------------------------------------------------ */
+
+.picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+
+.picker__label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Native select chrome would break the drafting language; this is styled
+   down to the arrow, which is drawn as a background glyph. */
+.picker__select {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--space-1) var(--space-6) var(--space-1) var(--space-2);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text);
+  background-color: var(--surface-1);
+  background-image: linear-gradient(45deg, transparent 50%, var(--accent) 50%),
+    linear-gradient(135deg, var(--accent) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% + 2px),
+    calc(100% - 11px) calc(50% + 2px);
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  border: var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard);
+  appearance: none;
+  cursor: pointer;
+  transition: background-color var(--transition);
+}
+
+.picker__select:hover {
+  background-color: var(--surface-2);
+}
+
+/* ---- empty state ------------------------------------------------------- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--surface-1);
+  border: var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard-lg);
+  /* Faint ruling so even the empty state reads as paper, not a blank card. */
+  background-image: linear-gradient(rgba(30, 90, 168, 0.05) 1px, transparent 1px);
+  background-size: 100% var(--space-6);
+}
+
+.empty__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(28px, 4.4vw, 46px);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  max-width: 18ch;
+}
+
+.empty__lead {
+  margin: 0;
+  max-width: 64ch;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.empty__points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+  max-width: 64ch;
+}
+
+.empty__points li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: 14px;
+  background: var(--bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.empty__bullet {
+  font-weight: 700;
+  color: var(--accent);
+  width: 1.5ch;
+  flex: none;
+}
+
+.empty__privacy {
+  margin: 0;
+  font-size: 12px;
+  color: var(--accent-support);
+  letter-spacing: 0.02em;
+}
+
+/* ---- loading ----------------------------------------------------------- */
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  background: var(--surface-1);
+  border: var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard-lg);
+}
+
+/* Three rules sweeping like a sheet being scanned row by row. */
+.loading__rule {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(280px, 60%);
+}
+
+.loading__rule span {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  animation: scan-rule 1.1s ease-in-out infinite;
+}
+
+.loading__rule span:nth-child(2) {
+  animation-delay: 140ms;
+}
+.loading__rule span:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@keyframes scan-rule {
+  0%,
+  100% {
+    background: var(--surface-2);
+    transform: scaleX(0.6);
+    transform-origin: left;
+  }
+  50% {
+    background: var(--accent);
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+.loading__text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ---- error ------------------------------------------------------------- */
+
+.errorpanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  text-align: center;
+  background: var(--surface-1);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard-lg);
+}
+
+.errorpanel__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--danger);
+}
+
+.errorpanel__text {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* ---- grid -------------------------------------------------------------- */
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+/* The grid owns its scrolling on both axes, so a 200-column sheet never
+   pushes the page sideways. */
+.grid__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--surface-1);
+  border: var(--rule);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard-lg);
+}
+
+.grid__table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid__head th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-2);
+  border-bottom: var(--rule);
+  border-right: var(--rule-faint);
+}
+
+.grid__col--insert {
+  color: var(--success);
+  box-shadow: inset 0 3px 0 var(--success);
+}
+
+.grid__col--delete {
+  color: var(--danger);
+  text-decoration: line-through;
+  box-shadow: inset 0 3px 0 var(--danger);
+}
+
+/* The row-number gutter pins left so a wide sheet keeps its bearings. */
+.grid__gutter {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: table-cell;
+  width: 1%;
+  white-space: nowrap;
+  padding: var(--space-1) var(--space-3);
+  text-align: right;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-right: var(--rule);
+  border-bottom: var(--rule-faint);
+}
+
+.grid__gutter--corner {
+  z-index: 3; /* above both sticky axes where they cross */
+}
+
+.grid__marker {
+  display: inline-block;
+  width: 1.2ch;
+  font-weight: 700;
+  text-align: center;
+}
+
+.grid__rownum {
+  display: inline-block;
+  min-width: 4ch;
+  text-align: right;
+}
+
+.grid__cell {
+  padding: var(--space-1) var(--space-3);
+  border-bottom: var(--rule-faint);
+  border-right: var(--rule-faint);
+  white-space: pre;
+  max-width: 42ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grid__row--insert {
+  background: var(--tint-success);
+}
+.grid__row--insert .grid__gutter {
+  color: var(--success);
+  background: var(--tint-success);
+  box-shadow: inset 3px 0 0 var(--success);
+}
+
+.grid__row--delete {
+  background: var(--tint-danger);
+  color: var(--text-muted);
+}
+.grid__row--delete .grid__cell {
+  text-decoration: line-through;
+  text-decoration-color: rgba(179, 38, 30, 0.5);
+}
+.grid__row--delete .grid__gutter {
+  color: var(--danger);
+  background: var(--tint-danger);
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+
+.grid__row--move .grid__gutter {
+  color: var(--accent-support);
+  box-shadow: inset 3px 0 0 var(--accent-support);
+}
+
+.grid__row--modify .grid__gutter {
+  color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.grid__row:hover .grid__cell {
+  background: rgba(30, 90, 168, 0.05);
+}
+
+/* The changed cell: the whole point of the tool, so it gets the accent
+   border and the only real emphasis on the page. */
+.grid__cell--changed {
+  background: var(--tint-changed);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  font-weight: 500;
+  animation: land-change 90ms ease-out;
+}
+
+@keyframes land-change {
+  from {
+    background: var(--accent);
+    color: var(--surface-1);
+  }
+}
+
+.grid__was {
+  color: var(--danger);
+  text-decoration: line-through;
+  text-decoration-color: rgba(179, 38, 30, 0.6);
+  margin-right: var(--space-2);
+  opacity: 0.75;
+}
+
+.grid__now {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.grid__cell--col-insert {
+  box-shadow: inset 3px 0 0 rgba(47, 122, 79, 0.35);
+}
+
+.grid__cell--col-delete {
+  color: var(--text-muted);
+  box-shadow: inset 3px 0 0 rgba(179, 38, 30, 0.35);
+}
+
+.grid__notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-2);
+  border: var(--rule-faint);
+  border-radius: var(--radius);
+}
+
+.grid__notice-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.grid__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
   background: var(--surface-1);
-  border: 2px dashed var(--accent);
+  border: var(--rule);
   border-radius: var(--radius);
   box-shadow: var(--shadow-hard);
-  padding: var(--space-6);
-  text-align: center;
-  transition: background var(--transition), border-color var(--transition);
 }
 
-.dropzone:hover,
-.dropzone:focus-visible {
-  background: var(--surface-2);
-}
-
-.dropzone__label {
+.grid__empty-title {
+  margin: 0;
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 16px;
+  font-weight: 700;
+  font-size: 20px;
 }
 
-.dropzone__hint {
+.grid__empty-hint {
+  margin: 0;
   color: var(--text-muted);
   font-size: 13px;
 }
 
-footer {
+/* ---- footer ------------------------------------------------------------ */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
   padding: var(--space-3) var(--space-5);
-  text-align: center;
-  color: var(--text-muted);
   font-size: 12px;
-  border-top: 1px solid var(--surface-2);
+  color: var(--text-muted);
+  background: var(--surface-1);
+  border-top: var(--rule-faint);
 }
+
+/* ---- responsive -------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .topbar {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .summary__value {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+
+  .main {
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+
+  /* Stacked, full width, and shorter: on a phone the grid is what matters,
+     so the zones give it back the room. */
+  .setup__zones {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .dropzone {
+    min-height: 88px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: var(--space-2);
+    text-align: left;
+  }
+
+  .dropzone__formats {
+    display: none; /* the accept dialog already filters */
+  }
+
+  .stage {
+    min-height: 65vh;
+  }
+
+  .empty {
+    padding: var(--space-4);
+  }
+
+  .grid__cell {
+    max-width: 24ch;
+  }
+}
+
+/* ---- reduced motion ---------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
   .wordmark__glyph path {
     animation: none;
     stroke-dashoffset: 0;
   }
-  * {
-    transition-duration: 0ms !important;
+
+  .loading__rule span {
+    animation: none;
+    background: var(--accent);
+    transform: none;
+  }
+
+  .grid__cell--changed {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
-@media (max-width: 640px) {
-  .dropzones {
-    grid-template-columns: 1fr;
-  }
+/* ---- dark preference --------------------------------------------------- */
 
-  main {
-    padding: var(--space-4);
-  }
-
-  .hero {
-    min-height: 65vh;
+/*
+ * The product is deliberately light: dense tabular data reads better on
+ * paper than on a glowing panel, per docs/DESIGN.md. Rather than ship a
+ * half-considered dark theme, take the edge off for someone whose device
+ * asked for dark — warm the paper down so it doesn't flash white.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #ded8ca;
+    --surface-1: #f4f1e8;
+    --surface-2: #ddd6c4;
   }
 }
