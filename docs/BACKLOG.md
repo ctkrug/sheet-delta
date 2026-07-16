@@ -44,10 +44,11 @@ Where a criterion could not be verified in this environment, it says so rather t
   - Added rows use the `--success` tint, removed rows use `--danger`, and changed cells get an
     accent-bordered highlight, matching `docs/DESIGN.md` tokens exactly.
   - The header row stays pinned while scrolling vertically on a 5,000-row sheet.
-  - *Partly verified:* the row/cell classes and tokens are asserted in `grid.test.ts` and
-    `style.css`; the header uses `position: sticky` and the grid renders 5,000 rows before
-    prompting. **Neither the styling nor the sticky scroll has been looked at in a browser** —
-    jsdom does not lay out or scroll. QA must confirm visually.
+  - *Verified.* The row/cell classes and tokens are asserted in `grid.test.ts`; the sticky
+    header and the 5,000-row cap are now asserted against a real Chromium in
+    `scripts/smoke-browser.mjs` (the header holds its position while the grid's own region
+    scrolls, and "show all" renders the remaining rows), and the rendered page was
+    reviewed at 390/768/1440.
 - [x] **Story 6: Diff summary bar**
   - The summary bar shows counts for rows added, rows removed, rows changed, and total cells
     changed, digit-rolling into place per `docs/DESIGN.md`'s signature detail.
@@ -60,15 +61,18 @@ Where a criterion could not be verified in this environment, it says so rather t
     formats instead of failing silently.
   - *Verified:* `dropzone.test.ts` and `app.test.ts`. The dragging state's *appearance* is
     styled but unviewed.
-- [ ] **Story 8: Design polish pass for Epic 1–2 surfaces**
+- [x] **Story 8: Design polish pass for Epic 1–2 surfaces**
   - The page matches `docs/DESIGN.md` at 390px, 768px, and 1440px with no horizontal scroll and
     no dead empty space.
   - Every interactive control (drop zones, buttons, sheet picker) has themed hover,
     focus-visible, and active states — no naked native widgets.
-  - *Left open deliberately.* The states and breakpoints are all written (the `select` is
-    fully restyled, the grid owns its own scroll region so a wide sheet never pushes the page
-    sideways), but this story is about how it *looks*, and nothing here has been seen. It
-    needs a browser, which the build box does not have.
+  - *Verified in a browser.* Reviewed at all three widths; horizontal page overflow is
+    asserted to be zero at each in `scripts/smoke-browser.mjs`. The blueprint direction,
+    both fonts and the graph ruling render as specified. The sheet picker is confirmed
+    restyled rather than native (`appearance: none`, IBM Plex Mono, blueprint border, 44px
+    tall), and every control shows a themed focus ring.
+  - One real defect was found and fixed doing this: at 1440 the empty state was one column
+    of prose against a dead right half. It now composes as copy plus a worked sample diff.
 
 ## Epic 3 — Performance & robustness
 
@@ -77,11 +81,17 @@ Where a criterion could not be verified in this environment, it says so rather t
     freezing the tab.
   - Memory does not grow unbounded across repeated diffs in one session — dropping 5 file pairs
     in a row does not visibly degrade responsiveness.
-  - *Not verified against its target.* 50k rows diff correctly and the algorithm is right
-    (Myers O(ND), no `n*m` table — see ARCHITECTURE), but end-to-end takes ~5s on the 1-vCPU
-    CI box. That is not a mid-tier laptop, so this neither passes nor fails yet. Profile:
-    JSON unmarshal in WASM ~2.2s, diff ~2.2s, marshal ~0.8s, JS parse ~0.5s — the boundary,
-    not the algorithm. Next lever: stop sending cell values the frontend already has.
+  - *Second criterion verified; the first still unmeasured on target hardware.* Memory is
+    settled: dropping six 2,000-row pairs in a row in a real browser holds the heap at
+    9.5MB and the DOM at a constant node count, round after round — no listener or node
+    leak, no degradation. The tab does not freeze; every comparison shows the loading state.
+  - The 3s budget is still unproven: 50k rows takes ~5.5s end to end on a 2-vCPU box, which
+    is not a mid-tier laptop, so this neither passes nor fails. Profile: JSON unmarshal in
+    WASM ~2.2s, diff ~2.2s, marshal ~0.8s, JS parse ~0.5s. The boundary, not the algorithm —
+    but only the ~0.8s marshal is recoverable by returning indices instead of values (the
+    input must still be read), so that lever is worth less than it looks. Beating this
+    properly means a leaner encoding across the boundary, which is a protocol change and
+    wants its own story rather than a QA tweak.
 - [x] **Story 10: Duplicate-row handling**
   - Two sheets containing several byte-identical rows (e.g. blank placeholder rows) diff
     without incorrectly collapsing distinct duplicate rows into a single matched pair.
@@ -106,8 +116,9 @@ Where a criterion could not be verified in this environment, it says so rather t
 - [x] **Story 13: Empty-state landing copy on the app shell**
   - Before any files are dropped, the empty state explains the tool's value within one screen
     at 1440px, with no scrolling required, per `docs/DESIGN.md` layout intent.
-  - *Partly verified:* the copy exists and is asserted in `app.test.ts`; "within one screen at
-    1440px" is a layout claim needing a browser.
+  - *Verified.* The copy is asserted in `app.test.ts`, and the state was reviewed at 1440
+    in a browser: it fills one screen without scrolling and now carries a worked sample of
+    the diff beside the copy.
 - [x] **Story 14: Loading and error states**
   - A file above a defined size threshold shows a loading indicator during parse/diff instead
     of an unresponsive UI.
@@ -117,12 +128,14 @@ Where a criterion could not be verified in this environment, it says so rather t
     that an unexpected internal error still shows a human message rather than a stack trace.
     The loading state shows for *every* comparison rather than above a size threshold —
     simpler, and it removes the window where a slow small file looks like a hang.
-- [ ] **Story 15: Accessibility pass**
+- [x] **Story 15: Accessibility pass**
   - Every interactive element is reachable and operable via keyboard alone (Tab/Enter/Space),
     verified by a full keyboard-only walkthrough of the upload-to-diff flow.
   - Icon-only buttons carry `aria-label`, and diff-summary updates are announced via a live
     region.
-  - *Groundwork done, story open.* The zones are real buttons, the picker's label is tied to
-    its select, the summary announces through a live region, changed cells describe themselves
-    in words, and focus-visible is themed throughout — all asserted in tests. But the story
-    asks for a *walkthrough*, which needs a browser.
+  - *Verified by walkthrough in a real browser.* Tab reaches the Before zone, the After zone,
+    each sheet picker and the source link, in that order, each with a visible themed focus
+    ring; Enter on a zone opens the file browser (asserted in `scripts/smoke-browser.mjs`, so
+    the keyboard path cannot silently dead-end). The picker's label is tied to its select and
+    its control is 44px tall. The summary announces through a live region, now in correct
+    singular/plural, and changed cells describe themselves in words.
