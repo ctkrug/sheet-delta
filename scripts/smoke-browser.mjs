@@ -88,6 +88,24 @@ try {
     await page.close();
   }
 
+  // ---- the same data from two exporters ----------------------------------
+  // Excel writes CSV with a BOM, Google Sheets does not. Comparing one
+  // against the other is an ordinary thing to do and must be quiet.
+  {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    const body = "id,name,city\n1,José,東京\n2,Zoë,Köln\n";
+    await compare(page, `﻿${body}`, body);
+
+    check("a BOM alone is not a change", await page.locator(".grid__cell--changed").count(), 0);
+    check(
+      "non-ASCII text survives the round trip",
+      (await page.locator(".grid__table").textContent()).includes("José"),
+      true,
+    );
+    await page.close();
+  }
+
   // ---- layout claims jsdom cannot see ------------------------------------
   {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });

@@ -20,6 +20,11 @@ export function isAcceptedFile(fileName: string): boolean {
   return (ACCEPTED_EXTENSIONS as readonly string[]).includes(extensionOf(fileName));
 }
 
+/** Reports whether a file is plain text, and so has no encoding of its own. */
+function isTextFormat(fileName: string): boolean {
+  return extensionOf(fileName) === ".csv";
+}
+
 function formatList(items: readonly string[]): string {
   if (items.length < 2) return items.join("");
   return `${items.slice(0, -1).join(", ")} or ${items[items.length - 1]}`;
@@ -81,13 +86,17 @@ export async function parseFile(file: File): Promise<Workbook> {
   let workbook: XLSX.WorkBook;
   try {
     const buffer = await file.arrayBuffer();
-    // codepage 65001 (UTF-8) applies to text formats, where the bytes carry
-    // no encoding of their own. Without it SheetJS falls back to a legacy
-    // single-byte codepage unless the file opens with a BOM — so a CSV from
-    // Excel (which writes one) and the same CSV from Google Sheets (which
-    // does not) would parse to different text and diff as changed on every
-    // row with an accent in it. .xlsx is unaffected: it declares UTF-8.
-    workbook = XLSX.read(buffer, { type: "array", raw: false, codepage: 65001 });
+    // A CSV is bytes with no declared encoding, and SheetJS guesses a legacy
+    // single-byte codepage for them unless the file opens with a BOM. Excel
+    // writes that BOM and most other exporters do not, so the same data from
+    // two tools would decode differently and diff as changed on every row
+    // with an accent in it. Decoding as UTF-8 here settles it in one place
+    // and keeps SheetJS's codepage tables (and their weight) out of the
+    // bundle. TextDecoder drops a leading BOM, which is a marker, not data.
+    // .xlsx and .xls carry their own encoding and are handed over as bytes.
+    workbook = isTextFormat(file.name)
+      ? XLSX.read(new TextDecoder("utf-8").decode(buffer), { type: "string", raw: false })
+      : XLSX.read(buffer, { type: "array", raw: false });
   } catch (cause) {
     throw new SheetDeltaError(
       `"${file.name}" couldn't be read. It may be corrupt, password-protected, or not really a spreadsheet.`,
