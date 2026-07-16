@@ -37,13 +37,34 @@ func Normalize(v string) string {
 	if !canStartNumber(trimmed[0]) {
 		return trimmed
 	}
-	if f, err := strconv.ParseFloat(trimmed, 64); err == nil && !math.IsInf(f, 0) && !math.IsNaN(f) {
-		if f == 0 {
-			f = 0 // collapse -0 onto 0, which FormatFloat otherwise renders as "-0"
-		}
+	if f, ok := parseCellNumber(trimmed); ok {
 		return strconv.FormatFloat(f, 'g', -1, 64)
 	}
 	return trimmed
+}
+
+// parseCellNumber parses a cell as the kind of number a spreadsheet writes:
+// an optionally signed decimal with an optional exponent.
+//
+// ParseFloat alone is too permissive here — it accepts Go *literal* syntax,
+// which also covers underscore digit separators ("1_000") and hex-float
+// mantissas ("0x1p-2"). No spreadsheet emits those, so a cell holding one is
+// text; treating it as a number would make an edit from "1_000" to "1000"
+// compare equal and disappear from the diff.
+func parseCellNumber(s string) (float64, bool) {
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; c == '_' || c == 'x' || c == 'X' {
+			return 0, false
+		}
+	}
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil || math.IsInf(f, 0) || math.IsNaN(f) {
+		return 0, false
+	}
+	if f == 0 {
+		f = 0 // collapse -0 onto 0, which FormatFloat otherwise renders as "-0"
+	}
+	return f, true
 }
 
 // canStartNumber reports whether a byte could begin a number ParseFloat

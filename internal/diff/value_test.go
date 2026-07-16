@@ -1,7 +1,6 @@
 package diff
 
 import (
-	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -16,10 +15,7 @@ func normalizeReference(v string) string {
 	if trimmed == "" {
 		return ""
 	}
-	if f, err := strconv.ParseFloat(trimmed, 64); err == nil && !math.IsInf(f, 0) && !math.IsNaN(f) {
-		if f == 0 {
-			f = 0
-		}
+	if f, ok := parseCellNumber(trimmed); ok {
 		return strconv.FormatFloat(f, 'g', -1, 64)
 	}
 	return trimmed
