@@ -17,7 +17,10 @@ import "sort"
 //
 // pairRows fixes both by matching the leftover deletes against the
 // leftover inserts: identical fingerprints are the same row moved, and
-// similar-enough rows are the same row modified.
+// similar-enough rows are the same row modified. It runs nearby, cheap
+// matches first and only then reaches across the sheet, so the common
+// edit-in-place keeps its obvious partner and a row that moved *and*
+// changed still finds its own.
 
 // minSimilarity is the fraction of shared columns two rows must agree on
 // to be considered the same row modified rather than an unrelated
@@ -86,7 +89,39 @@ func pairRows(script []edit, keysA, keysB []uint64, similarity func(ai, bi int) 
 	for _, block := range changeBlocks(script, p.pairedA, p.moved) {
 		matchBlock(block, similarity, &p)
 	}
+
+	// Pass 3 — rows that both moved and were edited. A single unchanged row
+	// between a row's old and new position ends the block, so pass 2 never
+	// compares that row's delete with its insert and both are reported as
+	// real, which is the false positive this package exists to remove:
+	// "sorted by region and fixed a total" is one action to a user.
+	//
+	// What is left after passes 1 and 2 is small in the case this exists
+	// for — a re-sorted sheet with a handful of edits. A leftover set too
+	// big to search is a wholesale rewrite, where pairing rows across the
+	// whole sheet is both costly and unconvincing, so those keep their
+	// add/remove reading rather than blow the comparison budget.
+	rest := unpaired(deletes, inserts, &p)
+	if len(rest.deletes)*len(rest.inserts) <= maxBlockComparisons {
+		matchBlock(rest, similarity, &p)
+	}
 	return p
+}
+
+// unpaired collects the leftovers no earlier pass could match.
+func unpaired(deletes, inserts []int, p *pairing) block {
+	var b block
+	for _, ai := range deletes {
+		if _, done := p.pairedA[ai]; !done {
+			b.deletes = append(b.deletes, ai)
+		}
+	}
+	for _, bi := range inserts {
+		if _, done := p.bToA[bi]; !done {
+			b.inserts = append(b.inserts, bi)
+		}
+	}
+	return b
 }
 
 // block is one run of consecutive non-equal edits, minus anything already
