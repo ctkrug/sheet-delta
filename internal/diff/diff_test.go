@@ -76,3 +76,39 @@ func TestCellDiffHandlesColumnLengthMismatch(t *testing.T) {
 		t.Fatalf("got %v, want [2]", changed)
 	}
 }
+
+func TestDiffRowsEmptySheets(t *testing.T) {
+	if ops := DiffRows(nil, nil); len(ops) != 0 {
+		t.Fatalf("got %+v, want no ops for two empty sheets", ops)
+	}
+}
+
+func TestDiffRowsFullReplacement(t *testing.T) {
+	a := [][]string{{"1", "Alice"}, {"2", "Bob"}}
+	b := [][]string{{"9", "Zed"}, {"8", "Yara"}}
+
+	ops := DiffRows(a, b)
+
+	var deletes, inserts, equals int
+	for _, op := range ops {
+		switch op.Op {
+		case Delete:
+			deletes++
+		case Insert:
+			inserts++
+		case Equal:
+			equals++
+		}
+	}
+	if deletes != len(a) || inserts != len(b) || equals != 0 {
+		t.Fatalf("got deletes=%d inserts=%d equals=%d, want %d/%d/0: %+v",
+			deletes, inserts, equals, len(a), len(b), ops)
+	}
+}
+
+func TestCellDiffIdenticalRowsHaveNoChanges(t *testing.T) {
+	row := []string{"1", "Alice", "NY"}
+	if changed := CellDiff(row, row); len(changed) != 0 {
+		t.Fatalf("got %v, want no changes for identical rows", changed)
+	}
+}
