@@ -85,8 +85,19 @@ func Diff(before, after Sheet) Result {
 	cols := AlignColumns(before.Header, after.Header)
 	shared := sharedColumns(cols)
 
-	keysA := fingerprintRows(before.Rows, shared, func(c ColumnDiff) int { return c.AIndex })
-	keysB := fingerprintRows(after.Rows, shared, func(c ColumnDiff) int { return c.BIndex })
+	if len(shared) == 0 {
+		// With no column in common there is nothing to establish row
+		// identity from, so no row of one sheet can be "the same row" as any
+		// row of the other. Matching on an empty fingerprint would pair rows
+		// arbitrarily.
+		return replaceAll(before, after, cols)
+	}
+
+	// One interner across both sheets: keys are only comparable if they come
+	// from the same mapping.
+	in := newInterner(len(before.Rows) + len(after.Rows))
+	keysA := fingerprintRows(in, before.Rows, shared, func(c ColumnDiff) int { return c.AIndex })
+	keysB := fingerprintRows(in, after.Rows, shared, func(c ColumnDiff) int { return c.BIndex })
 
 	script := alignKeys(keysA, keysB)
 	pairs := pairRows(script, keysA, keysB, func(ai, bi int) float64 {
@@ -124,12 +135,25 @@ func Diff(before, after Sheet) Result {
 	return result
 }
 
+// replaceAll renders every "before" row as removed and every "after" row
+// as added, for the case where the two sheets have no column in common.
+func replaceAll(before, after Sheet, cols []ColumnDiff) Result {
+	result := Result{Columns: cols, Rows: make([]RowResult, 0, len(before.Rows)+len(after.Rows))}
+	for i := range before.Rows {
+		result.Rows = append(result.Rows, buildRow(OpDelete, i, -1, before, after, cols))
+	}
+	for i := range after.Rows {
+		result.Rows = append(result.Rows, buildRow(OpInsert, -1, i, before, after, cols))
+	}
+	result.Summary = summarize(result)
+	return result
+}
+
 // fingerprintRows reduces each row to a key over the shared columns only.
 // Comparing over shared columns is what lets an inserted column stay a
 // single column-level insert: the rows either side of it still fingerprint
 // identically. index selects which side's column position to read.
-func fingerprintRows(rows [][]string, shared []ColumnDiff, index func(ColumnDiff) int) []uint64 {
-	in := newInterner(len(rows))
+func fingerprintRows(in *interner, rows [][]string, shared []ColumnDiff, index func(ColumnDiff) int) []uint64 {
 	keys := make([]uint64, len(rows))
 	var sb strings.Builder
 	for i, row := range rows {
