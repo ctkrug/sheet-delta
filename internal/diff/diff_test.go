@@ -87,6 +87,41 @@ func TestDiffReportsAnEditAndAReorderWithoutFalsePositives(t *testing.T) {
 	}
 }
 
+// The same wow moment, but with the edited row landing on the far side of
+// an unchanged row from where it started. Re-sorting a sheet and editing it
+// is one action to a user ("I sorted by region and fixed a total"), and the
+// edited row's delete and insert end up in different change blocks — so the
+// pairing has to reach across the sheet, not just within a block.
+func TestDiffPairsARowThatBothMovedAndChanged(t *testing.T) {
+	before := sheet([]string{"id", "region", "total"},
+		[]string{"1", "North", "200"},
+		[]string{"2", "South", "300"},
+		[]string{"3", "East", "410"},
+	)
+	// Row 1 moved below row 2, and its total changed 200 -> 250.
+	after := sheet([]string{"id", "region", "total"},
+		[]string{"2", "South", "300"},
+		[]string{"1", "North", "250"},
+		[]string{"3", "East", "410"},
+	)
+
+	got := Diff(before, after)
+
+	if want := []string{"total:200->250"}; !equalStrings(changedCells(got), want) {
+		t.Fatalf("changed cells = %v, want %v\n%s", changedCells(got), want, render(got))
+	}
+	if got.Summary.RowsAdded != 0 || got.Summary.RowsRemoved != 0 {
+		t.Errorf("moved-and-edited row reported as +%d/-%d rows, want 0/0\n%s",
+			got.Summary.RowsAdded, got.Summary.RowsRemoved, render(got))
+	}
+	if got.Summary.RowsChanged != 1 {
+		t.Errorf("RowsChanged = %d, want 1\n%s", got.Summary.RowsChanged, render(got))
+	}
+	if len(got.Rows) != 3 {
+		t.Errorf("rendered %d rows, want 3\n%s", len(got.Rows), render(got))
+	}
+}
+
 func TestDiffReportsIdenticalSheetsAsEntirelyUnchanged(t *testing.T) {
 	s := sheet([]string{"id", "total"}, []string{"1", "10"}, []string{"2", "20"})
 
