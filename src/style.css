@@ -1,0 +1,228 @@
+:root {
+  --bg: #f3efe4;
+  --surface-1: #ffffff;
+  --surface-2: #e8e2d2;
+  --text: #1b2430;
+  --text-muted: #5c6773;
+  --accent: #1e5aa8;
+  --accent-support: #c05621;
+  --success: #2f7a4f;
+  --danger: #b3261e;
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-ui: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius: 4px;
+  --shadow-hard: 2px 2px 0 rgba(27, 36, 48, 0.15);
+  --transition: 150ms ease-out;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  background-image: linear-gradient(
+    to bottom,
+    rgba(30, 90, 168, 0.05) 1px,
+    transparent 1px
+  );
+  background-size: 100% var(--space-6);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--accent);
+}
+
+button {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-1);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition),
+    background var(--transition);
+}
+
+button:hover {
+  background: var(--surface-2);
+}
+
+button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent-support);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--surface-2);
+  background: var(--surface-1);
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.wordmark__glyph {
+  width: 28px;
+  height: 28px;
+}
+
+.wordmark__glyph path {
+  stroke-dasharray: 140;
+  stroke-dashoffset: 140;
+  animation: draw-glyph 900ms ease-out forwards;
+}
+
+@keyframes draw-glyph {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.tagline {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  padding: var(--space-5);
+}
+
+.hero {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.dropzones {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  max-width: 1100px;
+  width: 100%;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--surface-1);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hard);
+  padding: var(--space-6);
+  text-align: center;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.dropzone:hover,
+.dropzone:focus-visible {
+  background: var(--surface-2);
+}
+
+.dropzone__label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.dropzone__hint {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+footer {
+  padding: var(--space-3) var(--space-5);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  border-top: 1px solid var(--surface-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark__glyph path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  * {
+    transition-duration: 0ms !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .dropzones {
+    grid-template-columns: 1fr;
+  }
+
+  main {
+    padding: var(--space-4);
+  }
+
+  .hero {
+    min-height: 65vh;
+  }
+}
