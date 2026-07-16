@@ -29,14 +29,19 @@ type Sheet struct {
 }
 
 // Cell is one rendered cell of the diff grid.
+//
+// The JSON tags omit empty fields deliberately. Most cells in a real diff
+// are unchanged, and a big sheet crosses the WASM boundary as one JSON
+// document — emitting "changed":false for every one of a few hundred
+// thousand cells measurably slows the handoff for no information.
 type Cell struct {
 	// Value is the cell's content in the "after" sheet, or in the "before"
 	// sheet for a deleted row or column.
-	Value string `json:"value"`
+	Value string `json:"value,omitempty"`
 	// Before is the prior content, set only when Changed is true.
 	Before string `json:"before,omitempty"`
 	// Changed marks a cell whose value differs between two matched rows.
-	Changed bool `json:"changed"`
+	Changed bool `json:"changed,omitempty"`
 }
 
 // RowResult is one rendered row of the diff grid. Cells is parallel to

@@ -33,11 +33,19 @@ export interface ColumnDiff {
   name: string;
 }
 
+/**
+ * One cell of the grid.
+ *
+ * Fields are optional because the engine omits empty ones: most cells in a
+ * real diff are unchanged, and spelling that out for every cell of a large
+ * sheet would bloat the payload crossing the WASM boundary. An absent
+ * `value` means an empty cell; an absent `changed` means unchanged.
+ */
 export interface Cell {
-  value: string;
+  value?: string;
   /** The prior value; present only when `changed` is true. */
   before?: string;
-  changed: boolean;
+  changed?: boolean;
 }
 
 export interface RowResult {

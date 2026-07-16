@@ -86,14 +86,14 @@ function renderCell(cell: Cell, columnOp: Op): HTMLTableCellElement {
     const before = el("span", "grid__was");
     before.textContent = cell.before ?? "";
     const after = el("span", "grid__now");
-    after.textContent = cell.value;
+    after.textContent = cell.value ?? "";
     node.append(before, after);
     // The old value is visible, but spell the change out for a screen
     // reader rather than leaving two bare values side by side.
     node.setAttribute("aria-label", `changed from ${cell.before || "empty"} to ${cell.value || "empty"}`);
     node.title = `was: ${cell.before || "(empty)"}`;
   } else {
-    node.textContent = cell.value;
+    node.textContent = cell.value ?? "";
   }
   return node;
 }
