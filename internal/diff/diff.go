@@ -13,18 +13,6 @@ import (
 	"strings"
 )
 
-// Op identifies how a row in the diff relates to the two input sheets.
-type Op int
-
-const (
-	// OpEqual marks a row present in both sheets at the same aligned position.
-	OpEqual Op = iota
-	// OpInsert marks a row present only in the "after" sheet.
-	OpInsert
-	// OpDelete marks a row present only in the "before" sheet.
-	OpDelete
-)
-
 // RowDiff describes one row of the aligned output.
 type RowDiff struct {
 	Op     Op
