@@ -138,6 +138,28 @@ try {
     await page.close();
   }
 
+  // ---- a file that isn't a spreadsheet ------------------------------------
+  // The refusal has to reach the screen, and the app has to stay usable
+  // afterwards: an error the user cannot get out of is its own bug.
+  {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.goto(origin, { waitUntil: "networkidle" });
+
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1, 2, 3]);
+    await give(page, 0, { name: "photo.csv", mimeType: "text/csv", buffer: jpeg });
+    await page.waitForSelector(".stage[data-view='error']", { timeout: 15_000 });
+    check(
+      "an image renamed .csv is refused, not rendered as mojibake",
+      (await page.locator(".errorpanel__text").textContent()).includes("binary"),
+      true,
+    );
+
+    // And the way out works: a real pair still diffs after the refusal.
+    await compare(page, "id,total\n1,200\n", "id,total\n1,250\n");
+    check("a real comparison still works after a refusal", await page.locator(".grid__cell--changed").count(), 1);
+    await page.close();
+  }
+
   // ---- layout claims jsdom cannot see ------------------------------------
   {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
