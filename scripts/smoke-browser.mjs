@@ -13,7 +13,6 @@
 import { chromium } from "playwright";
 import { createServer } from "vite";
 
-const PORT = 5178;
 let failures = 0;
 
 function check(name, actual, expected) {
@@ -40,8 +39,13 @@ async function compare(page, before, after) {
   await page.waitForSelector(".stage[data-view='diff'] .grid__table", { timeout: 30_000 });
 }
 
-const server = await createServer({ root: process.cwd(), server: { port: PORT } });
+// Port 0 lets the OS pick a free one, and the URL is read back from the
+// server rather than assumed: Vite quietly moves to the next port if the
+// one it was given is busy, which would leave every check here navigating
+// to whatever else is listening.
+const server = await createServer({ root: process.cwd(), server: { port: 0 } });
 await server.listen();
+const origin = server.resolvedUrls.local[0];
 const browser = await chromium.launch();
 
 try {
@@ -51,7 +55,7 @@ try {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.goto(origin, { waitUntil: "networkidle" });
 
     await compare(
       page,
@@ -76,7 +80,7 @@ try {
   // the tool by, so it is worth one end-to-end pass on the real binary.
   {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.goto(origin, { waitUntil: "networkidle" });
     await compare(
       page,
       "id,region,total\n1,North,200\n2,South,300\n3,East,410\n",
@@ -93,7 +97,7 @@ try {
   // from it, which is the half a user experiences.
   {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
-    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.goto(origin, { waitUntil: "networkidle" });
     await give(page, 0, { name: "q1.csv", mimeType: "text/csv", buffer: Buffer.from("id,total\n1,200\n2,300\n") });
     await page.waitForTimeout(300);
     await give(page, 1, { name: "q2.csv", mimeType: "text/csv", buffer: Buffer.from("id,total\n1,250\n2,300\n") });
@@ -121,7 +125,7 @@ try {
   // against the other is an ordinary thing to do and must be quiet.
   {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.goto(origin, { waitUntil: "networkidle" });
     const body = "id,name,city\n1,José,東京\n2,Zoë,Köln\n";
     await compare(page, `﻿${body}`, body);
 
@@ -137,7 +141,7 @@ try {
   // ---- layout claims jsdom cannot see ------------------------------------
   {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.goto(origin, { waitUntil: "networkidle" });
 
     let rows = "id,region,total\n";
     for (let i = 0; i < 6_000; i++) rows += `${i},R${i % 7},${i * 3}\n`;
@@ -166,7 +170,7 @@ try {
   // ---- responsive: no sideways scroll at any width ------------------------
   for (const [width, height] of [[390, 844], [768, 1024], [1440, 900]]) {
     const page = await browser.newPage({ viewport: { width, height } });
-    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.goto(origin, { waitUntil: "networkidle" });
     await compare(page, "id,total\n1,200\n", "id,total\n1,250\n");
     // A wide sheet must scroll inside the grid, not push the page sideways.
     const overflow = await page.evaluate(
@@ -180,7 +184,7 @@ try {
   // Story 15: the whole upload flow has to be reachable without a mouse.
   {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await page.goto(origin, { waitUntil: "networkidle" });
 
     const stops = [];
     for (let i = 0; i < 3; i++) {
