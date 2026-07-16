@@ -30,6 +30,9 @@ func Normalize(v string) string {
 		return ""
 	}
 	if f, err := strconv.ParseFloat(trimmed, 64); err == nil && !math.IsInf(f, 0) && !math.IsNaN(f) {
+		if f == 0 {
+			f = 0 // collapse -0 onto 0, which FormatFloat otherwise renders as "-0"
+		}
 		return strconv.FormatFloat(f, 'g', -1, 64)
 	}
 	return trimmed
