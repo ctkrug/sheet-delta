@@ -216,6 +216,16 @@ a {
   color: var(--accent);
 }
 
+/* Pin the tally and the download together on the right, so the download
+   appearing after a comparison doesn't shove the counters sideways. */
+.topbar__summary {
+  margin-left: auto;
+}
+
+.topbar__download {
+  flex: none;
+}
+
 /* ---- summary bar ------------------------------------------------------- */
 
 .summary {

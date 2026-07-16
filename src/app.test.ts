@@ -282,6 +282,66 @@ describe("createApp — sheet picker", () => {
   });
 });
 
+describe("createApp — download", () => {
+  const button = () => container.querySelector<HTMLButtonElement>(".topbar__download")!;
+
+  it("offers no download until there is a diff to download", () => {
+    expect(button().hidden).toBe(true);
+  });
+
+  it("offers the download once the grid is up", async () => {
+    await dropPair();
+
+    expect(button().hidden).toBe(false);
+  });
+
+  it("withdraws the download when the diff leaves the screen", async () => {
+    await dropPair();
+    diffSheets.mockRejectedValueOnce(new SheetDeltaError("nope"));
+    dropOn(zones()[1], csvFile("after2.csv", "id,total\n1,999\n"));
+    await flush();
+
+    expect(stageView()).toBe("error");
+    expect(button().hidden).toBe(true);
+  });
+
+  // Story 12: what downloads must be the diff that is on screen.
+  it("writes the diff on screen, named after both files", async () => {
+    const clicked: { href: string; download: string }[] = [];
+    const created: string[] = [];
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: (blob: Blob) => {
+        created.push("blob:fake");
+        blobs.set("blob:fake", blob);
+        return "blob:fake";
+      },
+      revokeObjectURL: (url: string) => created.splice(created.indexOf(url), 1),
+    });
+    const blobs = new Map<string, Blob>();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      clicked.push({ href: this.href, download: this.download });
+    });
+
+    await dropPair(
+      csvFile("q1.csv", "id,total\n1,200\n"),
+      csvFile("q2.csv", "id,total\n1,250\n"),
+    );
+    button().click();
+
+    expect(clicked).toHaveLength(1);
+    expect(clicked[0].download).toBe("diff-q1-vs-q2.csv");
+    // jsdom's Blob has no text(); arrayBuffer is polyfilled in test-setup.
+    const text = new TextDecoder().decode(await blobs.get("blob:fake")!.arrayBuffer());
+    expect(text).toContain("Change,Row,id,total");
+    expect(text).toContain("200 -> 250");
+
+    vi.unstubAllGlobals();
+  });
+});
+
 describe("createApp — error states", () => {
   // Story 14: errors are designed states with a retry, never a blank screen
   // or a console stack trace.

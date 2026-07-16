@@ -1,5 +1,6 @@
 import { createDropzone, type Dropzone } from "./dropzone";
 import { diffSheets, loadEngine } from "./engine";
+import { exportFileName, toCSV } from "./export";
 import { renderGrid } from "./grid";
 import { parseFile } from "./parse";
 import { createSummaryBar, type SummaryBar } from "./summary";
@@ -123,6 +124,8 @@ export function createApp(container: HTMLElement): App {
   const sides = {} as Record<Side, SideState>;
   let summaryBar: SummaryBar;
   let view: View = "empty";
+  /** The diff on screen, and so the one the download would write. */
+  let current: DiffResult | undefined;
   /**
    * Which view currently owns the stage. Every `setView` claims it, and an
    * async comparison commits its result only if it still holds the claim it
@@ -135,7 +138,16 @@ export function createApp(container: HTMLElement): App {
 
   const topbar = el("header", "topbar");
   const summaryHost = el("div", "topbar__summary");
-  topbar.append(renderWordmark(), summaryHost);
+
+  // Offered only once there is a diff to download: a dead control is a
+  // worse answer than no control.
+  const download = el("button", "button button--ghost topbar__download");
+  download.type = "button";
+  download.textContent = "Download CSV";
+  download.hidden = true;
+  download.addEventListener("click", () => downloadDiff());
+
+  topbar.append(renderWordmark(), summaryHost, download);
 
   const main = el("main", "main");
 
@@ -164,6 +176,9 @@ export function createApp(container: HTMLElement): App {
     view = next;
     stage.dataset.view = next;
     stage.replaceChildren(node);
+    // The download belongs to the diff on screen; every other view has none
+    // to give, so the button goes with it.
+    download.hidden = next !== "diff";
   };
 
   const renderEmptyState = (): HTMLElement => {
@@ -232,6 +247,30 @@ export function createApp(container: HTMLElement): App {
     setView("error", renderError(message, retry));
   };
 
+  /**
+   * Writes the diff on screen out as a CSV download.
+   *
+   * The blob is built and revoked here rather than held: the result can be
+   * tens of megabytes of text, and keeping it alive for a button that may
+   * never be pressed would double the memory a large diff costs. Revoking
+   * is deferred a tick because revoking during the click can cancel the
+   * download in some browsers.
+   */
+  const downloadDiff = (): void => {
+    if (!current) return;
+
+    const blob = new Blob([toCSV(current)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = exportFileName(
+      sides.before.workbook?.fileName ?? "before",
+      sides.after.workbook?.fileName ?? "after",
+    );
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
   /** Turns any thrown value into something worth showing a person. */
   const messageFor = (err: unknown): string =>
     err instanceof SheetDeltaError
@@ -259,6 +298,7 @@ export function createApp(container: HTMLElement): App {
       // the one the user is waiting for.
       if (run !== generation) return;
 
+      current = result;
       const grid = el("div", "grid");
       setView("diff", grid);
       renderGrid(grid, result);
