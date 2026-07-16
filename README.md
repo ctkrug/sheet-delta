@@ -29,10 +29,13 @@ lit up. Rows that were only reordered stay quiet.
 
 ## How it works
 
-- **Diff engine** — written in Go, compiled to WebAssembly. Row alignment uses a Myers-style
-  LCS/edit-script approach adapted to operate on row fingerprints instead of characters, so
-  reordered rows are detected as moves rather than delete+insert pairs. Column alignment and
-  per-cell comparison run inside each matched row pair.
+- **Diff engine** — written in Go, compiled to WebAssembly. It aligns **columns first**, by
+  header name, because a column inserted upstream shifts every later cell and would otherwise
+  make the whole sheet look changed. Rows are then fingerprinted over the columns the two
+  sheets share and aligned with a Myers LCS edit script — operating on row fingerprints
+  instead of characters, so a row's identity is its content, not its position. Leftover rows
+  are paired into moves and modifications, and only then are cells compared, inside matched
+  pairs, so exactly the changed cells are flagged.
 - **File parsing** — [SheetJS](https://sheetjs.com/) in the browser reads `.csv`, `.xlsx`, and
   `.xls` into a common tabular representation before it's handed to the WASM diff engine.
 - **Everything client-side** — no file ever leaves the browser. There's no backend to this
