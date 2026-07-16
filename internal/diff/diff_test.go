@@ -404,6 +404,32 @@ func TestDiffAlwaysRendersOneCellPerColumn(t *testing.T) {
 	}
 }
 
+// A sheet exported with trailing blank columns is ordinary, and it makes the
+// two header rows very different lengths while sharing every key, so nothing
+// is dropped as unmatchable and the alignment sees the lopsided pair whole.
+// That combination used to panic inside the middle-snake search rather than
+// diff, which the WASM bridge could only report as "unexpected error".
+func TestDiffHandlesSheetsOfVeryDifferentWidths(t *testing.T) {
+	wide := make([]string, 12)
+	wide[0] = "id"
+	wideRow := make([]string, 12)
+	wideRow[0] = "1"
+
+	before := sheet([]string{"", "id"}, []string{"", "1"})
+	after := sheet(wide, wideRow)
+
+	got := Diff(before, after) // must not panic
+
+	if len(got.Rows) != 1 {
+		t.Fatalf("got %d rows, want 1\n%s", len(got.Rows), render(got))
+	}
+	for i, row := range got.Rows {
+		if len(row.Cells) != len(got.Columns) {
+			t.Fatalf("row %d has %d cells, want %d", i, len(row.Cells), len(got.Columns))
+		}
+	}
+}
+
 // The frontend consumes this over the WASM boundary as JSON, so ops must
 // survive as readable names rather than bare ordinals.
 func TestResultMarshalsOpsAsNames(t *testing.T) {
