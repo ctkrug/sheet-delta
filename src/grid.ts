@@ -122,7 +122,7 @@ function renderHead(result: DiffResult): HTMLTableSectionElement {
     th.textContent = column.name;
     const label = COLUMN_LABEL[column.op];
     if (label) {
-      th.title = `${column.name} — ${label}`;
+      th.title = `${column.name}: ${label}`;
       th.setAttribute("aria-label", `${column.name}, ${label}`);
     }
     tr.append(th);

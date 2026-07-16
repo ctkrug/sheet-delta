@@ -57,7 +57,7 @@ export function createDropzone(options: DropzoneOptions): Dropzone {
   formats.textContent = acceptedList();
 
   element.append(input, title, hint, formats);
-  element.setAttribute("aria-label", `${options.label} file — drop a file here or click to browse`);
+  element.setAttribute("aria-label", `${options.label} file: drop a file here or click to browse`);
 
   const accept = (file: File | undefined): void => {
     if (!file) return;
@@ -111,7 +111,7 @@ export function createDropzone(options: DropzoneOptions): Dropzone {
     setFileName(name: string): void {
       hint.textContent = name;
       element.classList.add("dropzone--loaded");
-      element.setAttribute("aria-label", `${options.label} file: ${name} — click to choose another`);
+      element.setAttribute("aria-label", `${options.label} file: ${name}, click to choose another`);
     },
     setInvalid(invalid: boolean): void {
       element.classList.toggle("dropzone--invalid", invalid);
