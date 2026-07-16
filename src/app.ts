@@ -1,5 +1,5 @@
 import { createDropzone, type Dropzone } from "./dropzone";
-import { diffSheets } from "./engine";
+import { diffSheets, loadEngine } from "./engine";
 import { renderGrid } from "./grid";
 import { parseFile } from "./parse";
 import { createSummaryBar, type SummaryBar } from "./summary";
@@ -278,7 +278,7 @@ export function createApp(container: HTMLElement): App {
 
   // The engine is a couple of megabytes and the first drop shouldn't wait
   // on it. A failure here is ignored: diffSheets retries and reports.
-  void import("./engine").then(({ loadEngine }) => loadEngine().catch(() => {}));
+  void loadEngine().catch(() => {});
 
   return { element: root };
 }
