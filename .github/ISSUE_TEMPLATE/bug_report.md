@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something in Sheet Delta isn't working as expected
+about: Something in Redline isn't working as expected
 title: ""
 labels: bug
 ---

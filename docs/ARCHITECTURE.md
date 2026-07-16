@@ -22,7 +22,7 @@ index.html            page shell; loads src/main.ts
 src/
   main.ts             entry point — finds #app and mounts the app
   app.ts              all app state; wires files → engine → grid + summary
-  types.ts            the data model shared with Go + SheetDeltaError
+  types.ts            the data model shared with Go + RedlineError
   parse.ts            File → Workbook, via SheetJS (input boundary)
   engine.ts           loads main.wasm; exposes diffSheets()
   grid.ts             DiffResult → the spreadsheet grid (the hero)
@@ -30,7 +30,7 @@ src/
   export.ts           DiffResult → CSV text (the download)
   dropzone.ts         drag-and-drop / click-to-browse file zones
   style.css           the whole stylesheet; tokens from DESIGN.md
-cmd/wasm/main.go      the WASM bridge: sheetDelta.diff(before, after)
+cmd/wasm/main.go      the WASM bridge: redline.diff(before, after)
 internal/diff/
   diff.go             Sheet/Result types + the Diff pipeline (start here)
   value.go            Normalize/Equal — the cell equality rule
@@ -57,7 +57,7 @@ public/               static assets + build output (main.wasm, wasm_exec.js)
    made an Excel export and a Google Sheets export of the same data differ on every
    accented row.
 3. **Compare** — `app.ts` calls `engine.ts`'s `diffSheets`, which JSON-encodes both sheets,
-   calls `sheetDelta.diff` (Go, in WASM), and decodes a `DiffResult`.
+   calls `redline.diff` (Go, in WASM), and decodes a `DiffResult`.
 4. **Render** — `grid.ts` draws the grid, `summary.ts` rolls the counters.
 
 The engine pipeline (`diff.go`'s `Diff`), which is the actual product:

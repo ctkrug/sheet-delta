@@ -12,5 +12,5 @@ if (root) {
 } else {
   // Not reachable with the shipped index.html, but a blank page with a
   // clean console is the worst thing to debug.
-  console.error("Sheet Delta: no #app element to mount into");
+  console.error("Redline: no #app element to mount into");
 }

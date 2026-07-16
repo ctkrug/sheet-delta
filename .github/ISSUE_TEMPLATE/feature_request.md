@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for Sheet Delta
+about: Suggest an idea for Redline
 title: ""
 labels: enhancement
 ---
