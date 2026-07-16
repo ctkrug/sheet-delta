@@ -107,9 +107,43 @@ describe("createSummaryBar", () => {
 
     const live = container.querySelector("[role='status']");
     expect(live?.getAttribute("aria-live")).toBe("polite");
-    expect(live?.textContent).toContain("1 rows added");
+    expect(live?.textContent).toContain("1 row added");
     expect(live?.textContent).toContain("2 rows removed");
     expect(live?.textContent).toContain("3 cells changed");
+  });
+
+  // The bar is the one thing read aloud on every comparison, so "1 rows
+  // added" is a wrong reading, not a typo — and the visible "cells" label
+  // sits right next to a "1".
+  it("says a count of one in the singular", () => {
+    const bar = createSummaryBar(container);
+
+    bar.update(summaryOf({ rowsAdded: 1, rowsRemoved: 1, rowsChanged: 1, rowsMoved: 1, cellsChanged: 1 }));
+
+    const live = container.querySelector("[role='status']")!;
+    expect(live.textContent).toContain("1 row added");
+    expect(live.textContent).toContain("1 row removed");
+    expect(live.textContent).toContain("1 row changed");
+    expect(live.textContent).toContain("1 row moved");
+    expect(live.textContent).toContain("1 cell changed");
+    expect(live.textContent).not.toContain("1 rows");
+    expect(live.textContent).not.toContain("1 cells");
+
+    const labels = [...container.querySelectorAll(".summary__label")].map((n) => n.textContent);
+    expect(labels).toContain("cell");
+  });
+
+  it("says a count of zero or many in the plural", () => {
+    const bar = createSummaryBar(container);
+
+    bar.update(summaryOf({ rowsAdded: 0, cellsChanged: 2 }));
+
+    const live = container.querySelector("[role='status']")!;
+    expect(live.textContent).toContain("0 rows added");
+    expect(live.textContent).toContain("2 cells changed");
+    expect([...container.querySelectorAll(".summary__label")].map((n) => n.textContent)).toContain(
+      "cells",
+    );
   });
 
   it("jumps straight to the final count when reduced motion is preferred", () => {
