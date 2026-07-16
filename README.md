@@ -71,24 +71,31 @@ See [`docs/VISION.md`](docs/VISION.md) for the full design rationale,
 
 ```sh
 npm install
-npm run dev       # start the Vite dev server
-npm test          # run frontend tests
-npm run lint      # typecheck
-npm run build     # compile the WASM engine + build the static site into dist/
-npm run test:wasm # exercise the compiled engine (needs a build first)
-go test ./...     # run the diff engine's Go test suite
+npm run dev           # start the Vite dev server
+npm test              # run frontend tests
+npm run test:coverage # ...with a coverage report
+npm run lint          # typecheck
+npm run build         # compile the WASM engine + build the static site into dist/
+npm run test:wasm     # exercise the compiled engine (needs a build first)
+npm run test:browser  # drive the built app in a real Chromium (needs a build first)
+go test ./...         # run the diff engine's Go test suite
 ```
 
 Building the WASM engine requires a local Go 1.22+ toolchain in addition to Node.
 `npm run build` produces a self-contained static `dist/` with only relative paths, so it
 can be served from any subpath.
 
+`npm run test:browser` needs a Chromium, which `npx playwright install chromium` fetches
+once. It covers what jsdom structurally cannot: real layout, real scrolling, and the real
+compiled engine.
+
 ## Status
 
-Working end to end: drop two files and get the grid diff. Export, a browser-verified
-design pass, and large-sheet performance tuning are still open — see
-[`docs/BACKLOG.md`](docs/BACKLOG.md), and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-for how the code fits together.
+Working end to end: drop two files and get the grid diff. The layout, the keyboard path and
+the compiled engine are verified in a real browser by `npm run test:browser`. Export is the
+one feature still unbuilt, and the large-sheet performance target is measured but unmet on
+slow hardware — see [`docs/BACKLOG.md`](docs/BACKLOG.md), and
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the code fits together.
 
 ## License
 
