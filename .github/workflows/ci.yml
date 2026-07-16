@@ -40,3 +40,7 @@ jobs:
       # Runs after the build, which is what produces public/main.wasm.
       - name: WASM boundary smoke test
         run: npm run test:wasm
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser smoke test
+        run: npm run test:browser
