@@ -61,7 +61,12 @@ export function createApp(container: HTMLElement): App {
   const sides = {} as Record<Side, SideState>;
   let summaryBar: SummaryBar;
   let view: View = "empty";
-  /** Guards against an earlier, slower diff overwriting a later one. */
+  /**
+   * Which view currently owns the stage. Every `setView` claims it, and an
+   * async comparison commits its result only if it still holds the claim it
+   * took — so neither a slower earlier diff nor one superseded by an error
+   * can paint over what the user is actually looking at.
+   */
   let generation = 0;
 
   // ---- shell -------------------------------------------------------------
@@ -93,6 +98,7 @@ export function createApp(container: HTMLElement): App {
   // ---- views -------------------------------------------------------------
 
   const setView = (next: View, node: HTMLElement): void => {
+    generation++;
     view = next;
     stage.dataset.view = next;
     stage.replaceChildren(node);
@@ -167,8 +173,8 @@ export function createApp(container: HTMLElement): App {
       return;
     }
 
-    const run = ++generation;
     setView("loading", renderLoading());
+    const run = generation;
 
     try {
       const result = await diffSheets(
