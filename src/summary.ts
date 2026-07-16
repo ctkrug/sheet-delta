@@ -14,7 +14,8 @@ const ROLL_MS = 420;
 
 interface Counter {
   key: keyof Summary;
-  label: string;
+  /** The counter's caption; a function where a count of one reads wrong. */
+  label: string | ((n: number) => string);
   /** Modifier for the counter's accent, matching the grid's row colors. */
   tone: "added" | "removed" | "changed" | "moved" | "neutral";
 }
@@ -24,8 +25,17 @@ const COUNTERS: Counter[] = [
   { key: "rowsRemoved", label: "removed", tone: "removed" },
   { key: "rowsChanged", label: "changed", tone: "changed" },
   { key: "rowsMoved", label: "moved", tone: "moved" },
-  { key: "cellsChanged", label: "cells", tone: "neutral" },
+  { key: "cellsChanged", label: (n) => plural(n, "cell"), tone: "neutral" },
 ];
+
+/** "1 row" / "2 rows" — English only, which is all the UI copy is. */
+function plural(n: number, noun: string): string {
+  return n === 1 ? noun : `${noun}s`;
+}
+
+function count(n: number, noun: string): string {
+  return `${n.toLocaleString()} ${plural(n, noun)}`;
+}
 
 function prefersReducedMotion(): boolean {
   return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -65,14 +75,14 @@ function rollTo(node: HTMLElement, to: number): void {
 /** Human wording for the live region, so a screen reader hears a sentence. */
 function describe(summary: Summary): string {
   const parts = [
-    `${summary.rowsAdded} rows added`,
-    `${summary.rowsRemoved} rows removed`,
-    `${summary.rowsChanged} rows changed`,
-    `${summary.rowsMoved} rows moved`,
-    `${summary.cellsChanged} cells changed`,
+    `${count(summary.rowsAdded, "row")} added`,
+    `${count(summary.rowsRemoved, "row")} removed`,
+    `${count(summary.rowsChanged, "row")} changed`,
+    `${count(summary.rowsMoved, "row")} moved`,
+    `${count(summary.cellsChanged, "cell")} changed`,
   ];
-  if (summary.columnsAdded > 0) parts.push(`${summary.columnsAdded} columns added`);
-  if (summary.columnsRemoved > 0) parts.push(`${summary.columnsRemoved} columns removed`);
+  if (summary.columnsAdded > 0) parts.push(`${count(summary.columnsAdded, "column")} added`);
+  if (summary.columnsRemoved > 0) parts.push(`${count(summary.columnsRemoved, "column")} removed`);
   return `Comparison complete: ${parts.join(", ")}.`;
 }
 
@@ -90,8 +100,7 @@ export function createSummaryBar(container: HTMLElement): SummaryBar {
   container.replaceChildren();
   container.classList.add("summary");
 
-  const values = new Map<keyof Summary, HTMLElement>();
-  for (const counter of COUNTERS) {
+  const items = COUNTERS.map((counter) => {
     const item = document.createElement("div");
     item.className = `summary__item summary__item--${counter.tone}`;
 
@@ -102,12 +111,12 @@ export function createSummaryBar(container: HTMLElement): SummaryBar {
 
     const label = document.createElement("span");
     label.className = "summary__label";
-    label.textContent = counter.label;
+    label.textContent = typeof counter.label === "function" ? counter.label(0) : counter.label;
 
     item.append(value, label);
     container.append(item);
-    values.set(counter.key, value);
-  }
+    return { counter, value, label };
+  });
 
   // Column changes are rarer than row changes, so they get a chip that
   // appears only when there is something to say instead of two more
@@ -127,13 +136,17 @@ export function createSummaryBar(container: HTMLElement): SummaryBar {
 
   return {
     update(summary: Summary): void {
-      for (const [key, node] of values) {
-        rollTo(node, summary[key]);
+      for (const { counter, value, label } of items) {
+        const n = summary[counter.key];
+        rollTo(value, n);
+        // The label settles on the final count while the digits are still
+        // rolling: it names what is being counted, not the number shown.
+        if (typeof counter.label === "function") label.textContent = counter.label(n);
       }
 
       const notes: string[] = [];
-      if (summary.columnsAdded > 0) notes.push(`+${summary.columnsAdded} column${summary.columnsAdded === 1 ? "" : "s"}`);
-      if (summary.columnsRemoved > 0) notes.push(`−${summary.columnsRemoved} column${summary.columnsRemoved === 1 ? "" : "s"}`);
+      if (summary.columnsAdded > 0) notes.push(`+${count(summary.columnsAdded, "column")}`);
+      if (summary.columnsRemoved > 0) notes.push(`−${count(summary.columnsRemoved, "column")}`);
       columns.textContent = notes.join("  ");
       columns.hidden = notes.length === 0;
 
