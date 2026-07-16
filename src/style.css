@@ -435,11 +435,14 @@ a {
 
 /* ---- empty state ------------------------------------------------------- */
 
+/* Copy left, a worked example right. A single column of prose would leave
+   most of a 1440px stage empty and make the reader take the tool's word
+   for what it does. */
 .empty {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  align-items: center;
+  gap: var(--space-6);
   padding: var(--space-6);
   background: var(--surface-1);
   border: var(--rule);
@@ -448,6 +451,40 @@ a {
   /* Faint ruling so even the empty state reads as paper, not a blank card. */
   background-image: linear-gradient(rgba(30, 90, 168, 0.05) 1px, transparent 1px);
   background-size: 100% var(--space-6);
+}
+
+.empty__copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* ---- empty state: the worked example ----------------------------------- */
+
+.empty__demo {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.empty__demo-caption {
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* The preview is the real grid, so it inherits the real styling; it only
+   needs to stop stretching and stay unmistakably a sample. */
+.empty__preview {
+  flex: none;
+  opacity: 0.92;
+}
+
+.empty__preview .grid__scroll {
+  flex: none;
 }
 
 .empty__title {
@@ -833,6 +870,12 @@ a {
 
   .summary__value {
     font-size: 16px;
+  }
+
+  /* The example drops below the copy before either gets too narrow to read. */
+  .empty {
+    grid-template-columns: 1fr;
+    align-items: start;
   }
 }
 

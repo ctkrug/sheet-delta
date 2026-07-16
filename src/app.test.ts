@@ -166,7 +166,7 @@ describe("createApp — comparing", () => {
     await dropPair();
 
     const live = container.querySelector("[role='status'][aria-live]");
-    expect(live?.textContent).toContain("1 cells changed");
+    expect(live?.textContent).toContain("1 cell changed");
   });
 
   // Story 6: a new pair re-diffs in place, with no reload.

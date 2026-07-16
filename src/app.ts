@@ -3,7 +3,7 @@ import { diffSheets, loadEngine } from "./engine";
 import { renderGrid } from "./grid";
 import { parseFile } from "./parse";
 import { createSummaryBar, type SummaryBar } from "./summary";
-import { SheetDeltaError, type Workbook } from "./types";
+import { SheetDeltaError, type DiffResult, type Workbook } from "./types";
 
 /**
  * Wires the pieces together: two files in, a grid out.
@@ -49,6 +49,62 @@ function renderWordmark(): HTMLElement {
   `;
   return mark;
 }
+
+/**
+ * The comparison shown in the empty state, as if these two sheets had been
+ * dropped in:
+ *
+ *   before            after
+ *   1  North  200     2  South  300
+ *   2  South  300     1  North  250
+ *   3  East   410     3  East   410
+ *
+ * Row 1 moved below row 2 and its total was edited — the case the tool is
+ * for, and the one a text diff renders as four wrong lines. It is rendered
+ * by the real grid rather than mocked up in markup, so the preview cannot
+ * drift away from what the tool actually does.
+ */
+const SAMPLE_DIFF: DiffResult = {
+  columns: [
+    { op: "equal", aIndex: 0, bIndex: 0, name: "id" },
+    { op: "equal", aIndex: 1, bIndex: 1, name: "region" },
+    { op: "equal", aIndex: 2, bIndex: 2, name: "total" },
+  ],
+  rows: [
+    {
+      op: "equal",
+      aIndex: 1,
+      bIndex: 0,
+      cells: [{ value: "2" }, { value: "South" }, { value: "300" }],
+    },
+    {
+      op: "modify",
+      aIndex: 0,
+      bIndex: 1,
+      cells: [
+        { value: "1" },
+        { value: "North" },
+        { value: "250", before: "200", changed: true },
+      ],
+    },
+    {
+      op: "equal",
+      aIndex: 2,
+      bIndex: 2,
+      cells: [{ value: "3" }, { value: "East" }, { value: "410" }],
+    },
+  ],
+  summary: {
+    rowsAdded: 0,
+    rowsRemoved: 0,
+    rowsChanged: 1,
+    rowsMoved: 0,
+    rowsUnchanged: 2,
+    cellsChanged: 1,
+    columnsAdded: 0,
+    columnsRemoved: 0,
+  },
+};
 
 export interface App {
   /** The app's root element, already mounted into the container. */
@@ -106,7 +162,8 @@ export function createApp(container: HTMLElement): App {
 
   const renderEmptyState = (): HTMLElement => {
     const empty = el("div", "empty");
-    empty.innerHTML = `
+    const copy = el("div", "empty__copy");
+    copy.innerHTML = `
       <h1 class="empty__title">See what actually changed<br />between two spreadsheets</h1>
       <p class="empty__lead">
         Drop in last month's export and this month's. Sheet Delta lines the rows up by
@@ -120,6 +177,17 @@ export function createApp(container: HTMLElement): App {
       </ul>
       <p class="empty__privacy">Nothing is uploaded. The comparison runs inside this tab.</p>
     `;
+
+    // Show the thing rather than only describing it: the same grid the tool
+    // renders, on a sample where a row moved and a cell changed.
+    const demo = el("figure", "empty__demo");
+    const caption = el("figcaption", "empty__demo-caption");
+    caption.textContent = "A sample comparison — one row moved, one cell edited";
+    const preview = el("div", "grid empty__preview");
+    renderGrid(preview, SAMPLE_DIFF);
+    demo.append(caption, preview);
+
+    empty.append(copy, demo);
     return empty;
   };
 
