@@ -1,10 +1,59 @@
 package diff
 
 import (
+	"math"
 	"math/rand"
 	"strconv"
+	"strings"
 	"testing"
 )
+
+// normalizeReference is Normalize without the first-byte fast path: the
+// straightforward version whose behaviour is the contract. The fast path is
+// an optimization, and an optimization that changes an answer is a bug.
+func normalizeReference(v string) string {
+	trimmed := strings.TrimSpace(v)
+	if trimmed == "" {
+		return ""
+	}
+	if f, err := strconv.ParseFloat(trimmed, 64); err == nil && !math.IsInf(f, 0) && !math.IsNaN(f) {
+		if f == 0 {
+			f = 0
+		}
+		return strconv.FormatFloat(f, 'g', -1, 64)
+	}
+	return trimmed
+}
+
+// The fast path rejects cells on their first byte. If it ever rejects
+// something ParseFloat would have accepted, two numerically equal cells
+// start comparing unequal and the diff quietly fills with false positives.
+func TestNormalizeFastPathAgreesWithTheReference(t *testing.T) {
+	cases := []string{
+		"", " ", "0", "-0", "+0", ".5", "-.5", "+.5", "1e3", "1E3", "-1e-3",
+		"0x1p-2", "Inf", "-Inf", "+Inf", "inf", "Infinity", "NaN", "nan", "-NaN",
+		"007", "1_000", "1,000", "abc", "Ada", "north", "In stock", "Not applicable",
+		"n/a", "N/A", "i", "I", "n", "N", "-", "+", ".", "e5", "1.2.3", "٣",
+		"true", "TRUE", "2026-07-16", "  42  ", "42%", "$42", "1/2",
+	}
+	// Random digit-ish strings probe the boundary between the two paths.
+	rng := rand.New(rand.NewSource(11))
+	alphabet := []byte("0123456789+-.eEinIN xX")
+	for i := 0; i < 4000; i++ {
+		n := rng.Intn(6) + 1
+		b := make([]byte, n)
+		for j := range b {
+			b[j] = alphabet[rng.Intn(len(alphabet))]
+		}
+		cases = append(cases, string(b))
+	}
+
+	for _, v := range cases {
+		if got, want := Normalize(v), normalizeReference(v); got != want {
+			t.Errorf("Normalize(%q) = %q, reference says %q", v, got, want)
+		}
+	}
+}
 
 func TestEqualTreatsNumericFormattingAsTheSameValue(t *testing.T) {
 	same := [][2]string{
