@@ -130,6 +130,66 @@ describe("renderGrid", () => {
     expect(labels[1]).toBe("changed from gone to empty");
   });
 
+  // The engine omits empty fields from its JSON (a large sheet is mostly
+  // unchanged cells, and spelling every default out measurably slows the
+  // handoff). So the grid receives bare objects, not filled-in ones, and
+  // has to render them rather than print "undefined" into a cell.
+  it("renders the cells the engine actually sends, with empty fields omitted", () => {
+    renderGrid(
+      container,
+      result(
+        [column("id"), column("note"), column("total")],
+        [{ op: "equal", aIndex: 0, bIndex: 0, cells: [{ value: "1" }, {}, { value: "0" }] }],
+      ),
+    );
+
+    const cells = [...container.querySelectorAll(".grid__cell")].map((n) => n.textContent);
+    expect(cells).toEqual(["1", "", "0"]);
+  });
+
+  it("renders a cell that changed from empty, which arrives with no before", () => {
+    renderGrid(
+      container,
+      result(
+        [column("note")],
+        [{ op: "modify", aIndex: 0, bIndex: 0, cells: [{ value: "filled in", changed: true }] }],
+      ),
+    );
+
+    const changed = container.querySelector(".grid__cell--changed")!;
+    expect(changed.querySelector(".grid__was")!.textContent).toBe("");
+    expect(changed.querySelector(".grid__now")!.textContent).toBe("filled in");
+    expect(changed.getAttribute("aria-label")).toBe("changed from empty to filled in");
+  });
+
+  it("renders a cell that changed to empty, which arrives with no value", () => {
+    renderGrid(
+      container,
+      result(
+        [column("note")],
+        [{ op: "modify", aIndex: 0, bIndex: 0, cells: [{ before: "was here", changed: true }] }],
+      ),
+    );
+
+    const changed = container.querySelector(".grid__cell--changed")!;
+    expect(changed.querySelector(".grid__was")!.textContent).toBe("was here");
+    expect(changed.querySelector(".grid__now")!.textContent).toBe("");
+    expect(changed.getAttribute("aria-label")).toBe("changed from was here to empty");
+  });
+
+  // A row is rendered against the column list; if they ever disagree the
+  // grid must still draw the cell rather than throw and blank the page.
+  it("renders a cell with no matching column entry as an ordinary cell", () => {
+    renderGrid(
+      container,
+      result([column("id")], [row("equal", [cell("1"), cell("orphan")])]),
+    );
+
+    const cells = [...container.querySelectorAll(".grid__cell")].map((n) => n.textContent);
+    expect(cells).toEqual(["1", "orphan"]);
+    expect(container.querySelectorAll(".grid__cell--col-insert")).toHaveLength(0);
+  });
+
   it("marks added and removed columns", () => {
     renderGrid(
       container,
