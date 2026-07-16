@@ -29,6 +29,14 @@ func Normalize(v string) string {
 	if trimmed == "" {
 		return ""
 	}
+	// Normalize runs on every cell of both sheets, so a 50,000-row compare
+	// calls it hundreds of thousands of times. ParseFloat is expensive even
+	// when it fails, and most cells in a real sheet are text that cannot
+	// begin a number — rejecting those on the first byte is what keeps the
+	// fingerprinting pass from dominating the diff.
+	if !canStartNumber(trimmed[0]) {
+		return trimmed
+	}
 	if f, err := strconv.ParseFloat(trimmed, 64); err == nil && !math.IsInf(f, 0) && !math.IsNaN(f) {
 		if f == 0 {
 			f = 0 // collapse -0 onto 0, which FormatFloat otherwise renders as "-0"
@@ -36,6 +44,24 @@ func Normalize(v string) string {
 		return strconv.FormatFloat(f, 'g', -1, 64)
 	}
 	return trimmed
+}
+
+// canStartNumber reports whether a byte could begin a number ParseFloat
+// accepts. It must not reject anything ParseFloat would take, or two
+// numerically equal cells would compare unequal — hence "Ii" and "Nn",
+// which cover the Inf and NaN forms Normalize deliberately falls through
+// on but which must still reach ParseFloat to be recognized.
+func canStartNumber(c byte) bool {
+	switch {
+	case c >= '0' && c <= '9':
+		return true
+	case c == '+' || c == '-' || c == '.':
+		return true
+	case c == 'i' || c == 'I' || c == 'n' || c == 'N':
+		return true
+	default:
+		return false
+	}
 }
 
 // Equal reports whether two raw cell values represent the same data under
