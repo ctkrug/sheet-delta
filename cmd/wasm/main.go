@@ -1,9 +1,10 @@
 //go:build js && wasm
 
 // Command wasm compiles the diff engine to WebAssembly and exposes it to
-// the browser as a global JS function, sheetDelta.diffRows. It is the only
-// bridge between the Go diff engine and the TypeScript frontend: no data
-// leaves the browser, so the whole comparison happens in this process.
+// the browser as sheetDelta.diff. It is the only bridge between the Go
+// diff engine and the TypeScript frontend, and it is deliberately the only
+// place data crosses any boundary at all: there is no server, so a
+// spreadsheet dropped into this tool never leaves the tab.
 package main
 
 import (
@@ -13,36 +14,57 @@ import (
 	"github.com/ctkrug/sheet-delta/internal/diff"
 )
 
-// diffRowsJS accepts two JSON-encoded [][]string arguments (the "before"
-// and "after" sheet rows) and returns a JSON-encoded []diff.RowDiff, or
-// throws a JS error if either argument fails to parse.
-func diffRowsJS(this js.Value, args []js.Value) any {
+// fail builds the error shape the frontend checks for. Errors are returned
+// as a tagged value rather than thrown: a Go panic across the JS boundary
+// unwinds the whole WASM instance, which would take the page down with it
+// and force a reload to diff anything else.
+func fail(msg string) any {
+	out, _ := json.Marshal(map[string]any{"ok": false, "error": msg})
+	return string(out)
+}
+
+// diffJS accepts two JSON-encoded diff.Sheet arguments (the "before" and
+// "after" sheets) and returns a JSON-encoded {ok, result} or {ok, error}.
+// JSON is used across the boundary because syscall/js has to copy values
+// one at a time, and one copy of a whole sheet beats a copy per cell.
+func diffJS(this js.Value, args []js.Value) (result any) {
+	// The engine is pure and well-tested, but a panic here would kill the
+	// WASM instance for the rest of the session. Report it as a normal
+	// error state instead so the user can retry with another file.
+	defer func() {
+		if r := recover(); r != nil {
+			result = fail("the diff engine hit an unexpected error")
+		}
+	}()
+
 	if len(args) != 2 {
-		return js.Global().Get("Error").New("diffRows requires exactly 2 arguments")
+		return fail("diff requires exactly 2 arguments")
+	}
+	if args[0].Type() != js.TypeString || args[1].Type() != js.TypeString {
+		return fail("diff requires two JSON strings")
 	}
 
-	var a, b [][]string
-	if err := json.Unmarshal([]byte(args[0].String()), &a); err != nil {
-		return js.Global().Get("Error").New("invalid before-sheet JSON: " + err.Error())
+	var before, after diff.Sheet
+	if err := json.Unmarshal([]byte(args[0].String()), &before); err != nil {
+		return fail("invalid before-sheet JSON: " + err.Error())
 	}
-	if err := json.Unmarshal([]byte(args[1].String()), &b); err != nil {
-		return js.Global().Get("Error").New("invalid after-sheet JSON: " + err.Error())
+	if err := json.Unmarshal([]byte(args[1].String()), &after); err != nil {
+		return fail("invalid after-sheet JSON: " + err.Error())
 	}
 
-	ops := diff.DiffRows(a, b)
-	out, err := json.Marshal(ops)
+	out, err := json.Marshal(map[string]any{"ok": true, "result": diff.Diff(before, after)})
 	if err != nil {
-		return js.Global().Get("Error").New("failed to encode diff result: " + err.Error())
+		return fail("failed to encode diff result: " + err.Error())
 	}
 	return string(out)
 }
 
 func main() {
-	done := make(chan struct{})
-
 	sheetDelta := js.Global().Get("Object").New()
-	sheetDelta.Set("diffRows", js.FuncOf(diffRowsJS))
+	sheetDelta.Set("diff", js.FuncOf(diffJS))
 	js.Global().Set("sheetDelta", sheetDelta)
 
-	<-done // keep the WASM module alive to serve JS calls
+	// Block forever: returning from main tears down the instance, and the
+	// exported function must stay callable for the life of the page.
+	select {}
 }
