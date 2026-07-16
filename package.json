@@ -1,0 +1,23 @@
+{
+  "name": "sheet-delta",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Drop in two CSV or Excel files and get an instant, git-diff-style cell-level comparison.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.0",
+    "typescript": "^5.5.4",
+    "vite": "^6.4.3",
+    "vitest": "^3.2.7"
+  }
+}
