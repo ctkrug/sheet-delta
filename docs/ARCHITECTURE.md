@@ -18,7 +18,7 @@ leaves your browser" is true by construction because there is nowhere for it to 
 The site is static files.
 
 ```
-index.html            page shell; loads src/main.ts
+index.html            page shell + the static reference copy below the app
 src/
   main.ts             entry point — finds #app and mounts the app
   app.ts              all app state; wires files → engine → grid + summary
@@ -55,7 +55,9 @@ public/               static assets + build output (main.wasm, wasm_exec.js)
    A `.csv` is decoded as UTF-8 here before SheetJS sees it — text has no encoding of its
    own, and SheetJS otherwise guesses a legacy codepage for any file lacking a BOM, which
    made an Excel export and a Google Sheets export of the same data differ on every
-   accented row.
+   accented row. This is also where non-spreadsheets are turned away: SheetJS never
+   rejects anything, so a file with no `.xlsx`/`.xls` container magic has to read as text
+   or it is refused rather than parsed into a grid of mojibake.
 3. **Compare** — `app.ts` calls `engine.ts`'s `diffSheets`, which JSON-encodes both sheets,
    calls `redline.diff` (Go, in WASM), and decodes a `DiffResult`.
 4. **Render** — `grid.ts` draws the grid, `summary.ts` rolls the counters.
