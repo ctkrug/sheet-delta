@@ -4,6 +4,13 @@
   "version": "0.1.0",
   "description": "Drop in two CSV or Excel files and get an instant, git-diff-style cell-level comparison.",
   "type": "module",
+  "license": "MIT",
+  "author": "Charlie Krug",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ctkrug/sheet-delta.git"
+  },
+  "keywords": ["diff", "csv", "excel", "spreadsheet", "wasm"],
   "scripts": {
     "dev": "vite",
     "build:wasm": "bash scripts/build-wasm.sh",
