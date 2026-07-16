@@ -170,8 +170,11 @@ export function createApp(container: HTMLElement): App {
 
   const footer = el("footer", "footer");
   footer.innerHTML = `
-    <span>Your files never leave this tab — there is no server.</span>
-    <a href="https://github.com/ctkrug/sheet-delta">Source</a>
+    <span>Your files never leave this tab. There is no server.</span>
+    <span class="footer__links">
+      <a href="https://github.com/ctkrug/sheet-delta">Source</a>
+      <a class="footer__more" href="https://apps.charliekrug.com">More by Charlie Krug →</a>
+    </span>
   `;
 
   const root = el("div", "app");
@@ -195,11 +198,11 @@ export function createApp(container: HTMLElement): App {
     const empty = el("div", "empty");
     const copy = el("div", "empty__copy");
     copy.innerHTML = `
-      <h1 class="empty__title">See what actually changed<br />between two spreadsheets</h1>
+      <h1 class="empty__title">Compare two Excel files.<br />See exactly which cells changed.</h1>
       <p class="empty__lead">
-        Drop in last month's export and this month's. Sheet Delta lines the rows up by
+        Drop in last month's export and this month's. Redline lines the rows up by
         their content, so a row that just moved stays quiet and only the cells that
-        really changed light up.
+        really changed light up. Reads .csv, .xlsx and .xls.
       </p>
       <ul class="empty__points">
         <li><span class="empty__bullet" aria-hidden="true">⇅</span> Reordered rows don't count as changes</li>
@@ -213,7 +216,7 @@ export function createApp(container: HTMLElement): App {
     // renders, on a sample where a row moved and a cell changed.
     const demo = el("figure", "empty__demo");
     const caption = el("figcaption", "empty__demo-caption");
-    caption.textContent = "A sample comparison — one row moved, one cell edited";
+    caption.textContent = "A sample comparison: one row moved, one cell edited";
     const preview = el("div", "grid empty__preview");
     renderGrid(preview, SAMPLE_DIFF);
     demo.append(caption, preview);

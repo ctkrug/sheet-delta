@@ -911,6 +911,23 @@ a {
   border-top: var(--rule-faint);
 }
 
+.footer__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* The way back to the rest of the portfolio: present, never a banner. */
+.footer__more {
+  color: var(--text-muted);
+  text-decoration-color: var(--surface-2);
+}
+
+.footer__more:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+
 /* ---- responsive -------------------------------------------------------- */
 
 @media (max-width: 900px) {
