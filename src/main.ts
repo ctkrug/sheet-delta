@@ -1,39 +1,16 @@
 import "./style.css";
+import { createApp } from "./app";
 
-const WORDMARK_GLYPH = `
-  <svg class="wordmark__glyph" viewBox="0 0 64 64" aria-hidden="true">
-    <path d="M32 14 L50 46 L14 46 Z" fill="none" stroke="#1E5AA8" stroke-width="5" stroke-linejoin="round" />
-  </svg>
-`;
-
-export function render(root: HTMLElement): void {
-  root.innerHTML = `
-    <header class="topbar">
-      <div class="wordmark">
-        ${WORDMARK_GLYPH}
-        Sheet Delta
-      </div>
-      <span class="tagline">Cell-level diffs for CSV &amp; Excel — nothing leaves your browser</span>
-    </header>
-    <main>
-      <div class="hero">
-        <div class="dropzones">
-          <div class="dropzone" role="button" tabindex="0" aria-label="Choose the before file">
-            <span class="dropzone__label">Before</span>
-            <span class="dropzone__hint">Drop a .csv or .xlsx file, or click to browse</span>
-          </div>
-          <div class="dropzone" role="button" tabindex="0" aria-label="Choose the after file">
-            <span class="dropzone__label">After</span>
-            <span class="dropzone__hint">Drop a .csv or .xlsx file, or click to browse</span>
-          </div>
-        </div>
-      </div>
-    </main>
-    <footer>Sheet Delta — open source, MIT licensed</footer>
-  `;
-}
-
+/**
+ * Entry point. Everything worth testing lives in the modules this mounts;
+ * this file only finds the root and reports the one failure that would
+ * otherwise leave a blank page.
+ */
 const root = document.getElementById("app");
 if (root) {
-  render(root);
+  createApp(root);
+} else {
+  // Not reachable with the shipped index.html, but a blank page with a
+  // clean console is the worst thing to debug.
+  console.error("Sheet Delta: no #app element to mount into");
 }
