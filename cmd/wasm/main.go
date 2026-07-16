@@ -1,7 +1,7 @@
 //go:build js && wasm
 
 // Command wasm compiles the diff engine to WebAssembly and exposes it to
-// the browser as sheetDelta.diff. It is the only bridge between the Go
+// the browser as redline.diff. It is the only bridge between the Go
 // diff engine and the TypeScript frontend, and it is deliberately the only
 // place data crosses any boundary at all: there is no server, so a
 // spreadsheet dropped into this tool never leaves the tab.
@@ -60,9 +60,9 @@ func diffJS(this js.Value, args []js.Value) (result any) {
 }
 
 func main() {
-	sheetDelta := js.Global().Get("Object").New()
-	sheetDelta.Set("diff", js.FuncOf(diffJS))
-	js.Global().Set("sheetDelta", sheetDelta)
+	redline := js.Global().Get("Object").New()
+	redline.Set("diff", js.FuncOf(diffJS))
+	js.Global().Set("redline", redline)
 
 	// Block forever: returning from main tears down the instance, and the
 	// exported function must stay callable for the life of the page.

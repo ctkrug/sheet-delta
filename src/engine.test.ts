@@ -15,7 +15,7 @@ interface Fakes {
   script: "load" | "error";
   /** What fetching main.wasm does. */
   wasm: "ok" | "404" | "offline";
-  /** Whether the Go runtime registers sheetDelta when run. */
+  /** Whether the Go runtime registers redline when run. */
   registers: boolean;
   /** Whether globalThis.Go exists after the script loads. */
   runtime: boolean;
@@ -55,7 +55,7 @@ async function loadModule(overrides: Partial<Fakes> = {}) {
   vi.resetModules();
   document.head.replaceChildren();
   delete globalThis.Go;
-  delete globalThis.sheetDelta;
+  delete globalThis.redline;
 
   // jsdom does not fetch script src, so stand in for the browser and fire
   // the callback engine.ts is waiting on.
@@ -71,7 +71,7 @@ async function loadModule(overrides: Partial<Fakes> = {}) {
               importObject = {};
               run(): void {
                 if (fakes.registers) {
-                  globalThis.sheetDelta = { diff: () => diffImpl() };
+                  globalThis.redline = { diff: () => diffImpl() };
                 }
               }
             } as never;
@@ -118,7 +118,7 @@ describe("diffSheets", () => {
     const { diffSheets } = await loadModule();
     await diffSheets(sheet(["1"]), sheet(["2"]));
     // Re-register a spying diff now that the engine has loaded.
-    globalThis.sheetDelta = {
+    globalThis.redline = {
       diff: (before: string, after: string) => {
         seen.push(before, after);
         return JSON.stringify({ ok: true, result });
@@ -214,7 +214,7 @@ describe("loadEngine — failure paths", () => {
     );
 
     await expect(loadEngine()).resolves.toBeUndefined();
-    expect(globalThis.sheetDelta).toBeDefined();
+    expect(globalThis.redline).toBeDefined();
   });
 
   it("resolves immediately once the engine is already up", async () => {

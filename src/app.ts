@@ -4,7 +4,7 @@ import { exportFileName, toCSV } from "./export";
 import { renderGrid } from "./grid";
 import { parseFile } from "./parse";
 import { createSummaryBar, type SummaryBar } from "./summary";
-import { SheetDeltaError, type DiffResult, type Workbook } from "./types";
+import { RedlineError, type DiffResult, type Workbook } from "./types";
 
 /**
  * Wires the pieces together: two files in, a grid out.
@@ -283,7 +283,7 @@ export function createApp(container: HTMLElement): App {
 
   /** Turns any thrown value into something worth showing a person. */
   const messageFor = (err: unknown): string =>
-    err instanceof SheetDeltaError
+    err instanceof RedlineError
       ? err.message
       : "Something went wrong reading that file. Try another export.";
 

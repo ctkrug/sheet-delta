@@ -26,7 +26,7 @@ vi.mock("./parse", async (importOriginal) => {
 });
 
 const { createApp } = await import("./app");
-const { SheetDeltaError } = await import("./types");
+const { RedlineError } = await import("./types");
 import type { DiffResult, Summary } from "./types";
 
 function summaryOf(overrides: Partial<Summary> = {}): Summary {
@@ -297,7 +297,7 @@ describe("createApp — download", () => {
 
   it("withdraws the download when the diff leaves the screen", async () => {
     await dropPair();
-    diffSheets.mockRejectedValueOnce(new SheetDeltaError("nope"));
+    diffSheets.mockRejectedValueOnce(new RedlineError("nope"));
     dropOn(zones()[1], csvFile("after2.csv", "id,total\n1,999\n"));
     await flush();
 
@@ -388,7 +388,7 @@ describe("createApp — error states", () => {
   });
 
   it("surfaces an engine failure and retries on request", async () => {
-    diffSheets.mockRejectedValueOnce(new SheetDeltaError("The diff engine couldn't be loaded."));
+    diffSheets.mockRejectedValueOnce(new RedlineError("The diff engine couldn't be loaded."));
 
     await dropPair();
     expect(stageView()).toBe("error");

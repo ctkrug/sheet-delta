@@ -1,4 +1,4 @@
-import { SheetDeltaError, type DiffResult, type Sheet } from "./types";
+import { RedlineError, type DiffResult, type Sheet } from "./types";
 
 /**
  * Loads the Go diff engine (WASM) and runs comparisons through it.
@@ -17,7 +17,7 @@ declare global {
   // eslint-disable-next-line no-var
   var Go: (new () => GoRuntime) | undefined;
   // eslint-disable-next-line no-var
-  var sheetDelta: { diff(before: string, after: string): string } | undefined;
+  var redline: { diff(before: string, after: string): string } | undefined;
 }
 
 /** What the Go side returns: a tagged success or a message we can show. */
@@ -27,14 +27,14 @@ let loading: Promise<void> | undefined;
 
 function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[data-sheet-delta="${src}"]`);
+    const existing = document.querySelector<HTMLScriptElement>(`script[data-redline="${src}"]`);
     if (existing) {
       resolve();
       return;
     }
     const script = document.createElement("script");
     script.src = src;
-    script.dataset.sheetDelta = src;
+    script.dataset.redline = src;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error(`failed to load ${src}`));
     document.head.appendChild(script);
@@ -49,7 +49,7 @@ function loadScript(src: string): Promise<void> {
  * files again.
  */
 export function loadEngine(): Promise<void> {
-  if (globalThis.sheetDelta) return Promise.resolve();
+  if (globalThis.redline) return Promise.resolve();
   if (loading) return loading;
 
   loading = (async () => {
@@ -74,12 +74,12 @@ export function loadEngine(): Promise<void> {
     // awaited.
     void go.run(instance);
 
-    if (!globalThis.sheetDelta) {
+    if (!globalThis.redline) {
       throw new Error("the diff engine did not register itself");
     }
   })().catch((cause) => {
     loading = undefined; // let the next attempt retry rather than fail forever
-    throw new SheetDeltaError(
+    throw new RedlineError(
       "The diff engine couldn't be loaded. Check your connection and try again.",
       cause,
     );
@@ -91,24 +91,24 @@ export function loadEngine(): Promise<void> {
 /**
  * Compares two sheets, loading the engine on first use.
  *
- * @throws {SheetDeltaError} if the engine can't load or rejects the input.
+ * @throws {RedlineError} if the engine can't load or rejects the input.
  */
 export async function diffSheets(before: Sheet, after: Sheet): Promise<DiffResult> {
   await loadEngine();
-  const engine = globalThis.sheetDelta;
+  const engine = globalThis.redline;
   if (!engine) {
-    throw new SheetDeltaError("The diff engine isn't available.");
+    throw new RedlineError("The diff engine isn't available.");
   }
 
   let response: EngineResponse;
   try {
     response = JSON.parse(engine.diff(JSON.stringify(before), JSON.stringify(after)));
   } catch (cause) {
-    throw new SheetDeltaError("The comparison failed unexpectedly. Try again.", cause);
+    throw new RedlineError("The comparison failed unexpectedly. Try again.", cause);
   }
 
   if (!response.ok) {
-    throw new SheetDeltaError(`The comparison failed: ${response.error}`);
+    throw new RedlineError(`The comparison failed: ${response.error}`);
   }
   return response.result;
 }

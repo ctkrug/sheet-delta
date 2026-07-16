@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { SheetDeltaError, type Sheet, type Workbook } from "./types";
+import { RedlineError, type Sheet, type Workbook } from "./types";
 
 /** File extensions the tool accepts, for validation and error copy. */
 export const ACCEPTED_EXTENSIONS = [".csv", ".xlsx", ".xls"] as const;
@@ -111,7 +111,7 @@ function toSheet(worksheet: XLSX.WorkSheet): Sheet {
 /**
  * Parses a spreadsheet file into a workbook of named sheets.
  *
- * Throws {@link SheetDeltaError} for anything the user can act on: an
+ * Throws {@link RedlineError} for anything the user can act on: an
  * unsupported extension, an oversized file, an empty or corrupt workbook,
  * or binary data wearing a spreadsheet's extension. SheetJS reports
  * malformed input by throwing arbitrary errors, so those are caught and
@@ -119,15 +119,15 @@ function toSheet(worksheet: XLSX.WorkSheet): Sheet {
  */
 export async function parseFile(file: File): Promise<Workbook> {
   if (!isAcceptedFile(file.name)) {
-    throw new SheetDeltaError(
+    throw new RedlineError(
       `"${file.name}" isn't a spreadsheet Redline can read. Accepted formats: ${formatList(ACCEPTED_EXTENSIONS)}.`,
     );
   }
   if (file.size === 0) {
-    throw new SheetDeltaError(`"${file.name}" is empty.`);
+    throw new RedlineError(`"${file.name}" is empty.`);
   }
   if (file.size >= MAX_FILE_BYTES) {
-    throw new SheetDeltaError(
+    throw new RedlineError(
       `"${file.name}" is larger than ${Math.floor(MAX_FILE_BYTES / (1024 * 1024))}MB. Try exporting a smaller range.`,
     );
   }
@@ -141,7 +141,7 @@ export async function parseFile(file: File): Promise<Workbook> {
   // welcome: they are text, so they pass this and SheetJS sorts them out.
   const isContainer = CONTAINER_MAGICS.some((magic) => startsWith(bytes, magic));
   if (!isContainer && looksBinary(bytes)) {
-    throw new SheetDeltaError(
+    throw new RedlineError(
       `"${file.name}" doesn't look like a spreadsheet. Its contents are binary data rather than rows and columns.`,
     );
   }
@@ -160,14 +160,14 @@ export async function parseFile(file: File): Promise<Workbook> {
       ? XLSX.read(new TextDecoder("utf-8").decode(buffer), { type: "string", raw: false })
       : XLSX.read(buffer, { type: "array", raw: false });
   } catch (cause) {
-    throw new SheetDeltaError(
+    throw new RedlineError(
       `"${file.name}" couldn't be read. It may be corrupt, password-protected, or not really a spreadsheet.`,
       cause,
     );
   }
 
   if (workbook.SheetNames.length === 0) {
-    throw new SheetDeltaError(`"${file.name}" has no sheets in it.`);
+    throw new RedlineError(`"${file.name}" has no sheets in it.`);
   }
 
   const sheets: Record<string, Sheet> = {};

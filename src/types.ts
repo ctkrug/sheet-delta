@@ -79,7 +79,7 @@ export interface DiffResult {
  * WASM handoff — raises one of these so the UI always has something
  * honest to show instead of a blank screen.
  */
-export class SheetDeltaError extends Error {
+export class RedlineError extends Error {
   /**
    * The underlying failure, kept for diagnosis. Carried explicitly rather
    * than via the standard `cause` option, which the ES2020 target predates.
@@ -88,7 +88,7 @@ export class SheetDeltaError extends Error {
 
   constructor(message: string, cause?: unknown) {
     super(message);
-    this.name = "SheetDeltaError";
+    this.name = "RedlineError";
     this.cause = cause;
   }
 }

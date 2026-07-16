@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { ACCEPTED_EXTENSIONS, isAcceptedFile, MAX_FILE_BYTES, parseFile } from "./parse";
-import { SheetDeltaError } from "./types";
+import { RedlineError } from "./types";
 
 /** Builds a File the way the drop handler receives one. */
 function fileOf(name: string, content: string | ArrayBuffer): File {
@@ -64,14 +64,14 @@ describe("parseFile — CSV", () => {
     const malformed = 'id,name\n1,"unterminated\n2,ok\n';
 
     // SheetJS is lenient and may recover rather than throw. Either way the
-    // contract holds: a Sheet or a SheetDeltaError, never a raw crash.
+    // contract holds: a Sheet or a RedlineError, never a raw crash.
     try {
       const sheet = (await parseFile(fileOf("bad.csv", malformed))).sheets.Sheet1;
       expect(Array.isArray(sheet.rows)).toBe(true);
       expect(sheet.header).toEqual(["id", "name"]);
     } catch (err) {
-      expect(err).toBeInstanceOf(SheetDeltaError);
-      expect((err as SheetDeltaError).message).toContain("bad.csv");
+      expect(err).toBeInstanceOf(RedlineError);
+      expect((err as RedlineError).message).toContain("bad.csv");
     }
   });
 
@@ -171,7 +171,7 @@ describe("parseFile — Excel", () => {
   it("reports a corrupt workbook as a readable error", async () => {
     const notASpreadsheet = fileOf("corrupt.xlsx", "PK this is not a workbook");
 
-    await expect(parseFile(notASpreadsheet)).rejects.toBeInstanceOf(SheetDeltaError);
+    await expect(parseFile(notASpreadsheet)).rejects.toBeInstanceOf(RedlineError);
   });
 });
 
@@ -189,7 +189,7 @@ describe("parseFile — binary data wearing a spreadsheet extension", () => {
 
     const err = await parseFile(jpeg).catch((e) => e);
 
-    expect(err).toBeInstanceOf(SheetDeltaError);
+    expect(err).toBeInstanceOf(RedlineError);
     expect(err.message).toContain("chart.csv");
     expect(err.message).toContain("binary");
   });
@@ -200,7 +200,7 @@ describe("parseFile — binary data wearing a spreadsheet extension", () => {
   it("rejects an image renamed to .xlsx", async () => {
     const jpeg = bytesFile("book.xlsx", [0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
 
-    await expect(parseFile(jpeg)).rejects.toBeInstanceOf(SheetDeltaError);
+    await expect(parseFile(jpeg)).rejects.toBeInstanceOf(RedlineError);
   });
 
   it("rejects noise that decodes to nothing readable", async () => {
@@ -208,7 +208,7 @@ describe("parseFile — binary data wearing a spreadsheet extension", () => {
     // it away, so only the undecodable-share test catches it.
     const noise = bytesFile("noise.csv", Array.from({ length: 512 }, () => 0x9d));
 
-    await expect(parseFile(noise)).rejects.toBeInstanceOf(SheetDeltaError);
+    await expect(parseFile(noise)).rejects.toBeInstanceOf(RedlineError);
   });
 
   // The guard's real risk is the false positive: refusing a file that is a
@@ -248,7 +248,7 @@ describe("parseFile — input boundaries", () => {
   it("rejects an unsupported file by naming the accepted formats", async () => {
     const err = await parseFile(fileOf("chart.png", "x")).catch((e) => e);
 
-    expect(err).toBeInstanceOf(SheetDeltaError);
+    expect(err).toBeInstanceOf(RedlineError);
     expect(err.message).toContain("chart.png");
     for (const ext of ACCEPTED_EXTENSIONS) {
       expect(err.message).toContain(ext);
@@ -258,7 +258,7 @@ describe("parseFile — input boundaries", () => {
   it("rejects an empty file", async () => {
     const err = await parseFile(fileOf("empty.csv", "")).catch((e) => e);
 
-    expect(err).toBeInstanceOf(SheetDeltaError);
+    expect(err).toBeInstanceOf(RedlineError);
     expect(err.message).toContain("empty");
   });
 
@@ -270,7 +270,7 @@ describe("parseFile — input boundaries", () => {
 
     const err = await parseFile(file).catch((e) => e);
 
-    expect(err).toBeInstanceOf(SheetDeltaError);
+    expect(err).toBeInstanceOf(RedlineError);
     expect(err.message).toContain("huge.csv");
   });
 });

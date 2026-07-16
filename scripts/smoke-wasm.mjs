@@ -49,7 +49,7 @@ function check(name, actual, expected) {
 }
 
 function diff(before, after) {
-  return JSON.parse(globalThis.sheetDelta.diff(JSON.stringify(before), JSON.stringify(after)));
+  return JSON.parse(globalThis.redline.diff(JSON.stringify(before), JSON.stringify(after)));
 }
 
 // The wow moment: one cell edited, one row moved.
@@ -91,7 +91,7 @@ const bad = diff("{", {});
 check("invalid JSON is reported, not thrown", bad.ok, false);
 check("the error explains itself", typeof bad.error === "string" && bad.error.length > 0, true);
 
-const wrongArity = JSON.parse(globalThis.sheetDelta.diff("{}"));
+const wrongArity = JSON.parse(globalThis.redline.diff("{}"));
 check("a missing argument is reported", wrongArity.ok, false);
 
 // A sheet big enough that an O(n*m) engine would never return.
