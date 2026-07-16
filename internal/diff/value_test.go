@@ -90,6 +90,25 @@ func TestEqualDistinguishesGenuinelyDifferentValues(t *testing.T) {
 	}
 }
 
+// Go's ParseFloat accepts Go *literal* syntax, which is a much larger
+// language than "a number a spreadsheet cell holds": underscore digit
+// separators and hex-float exponents both parse. A cell reading "1_000" is
+// text to every spreadsheet on earth, so treating it as 1000 makes an edit
+// from "1_000" to "1000" vanish from the diff — the one failure a diff tool
+// must never have.
+func TestNormalizeRejectsNumberFormsSpreadsheetsDoNotUse(t *testing.T) {
+	for _, v := range []string{"1_000", "1_0", "0x1p-2", "0X1P-2", "0x10", "1_000.5"} {
+		if got := Normalize(v); got != v {
+			t.Errorf("Normalize(%q) = %q, want it left as text", v, got)
+		}
+	}
+	for _, pair := range [][2]string{{"1_000", "1000"}, {"0x1p-2", "0.25"}, {"0x10", "16"}} {
+		if Equal(pair[0], pair[1]) {
+			t.Errorf("Equal(%q, %q) = true — a real change would be reported as unchanged", pair[0], pair[1])
+		}
+	}
+}
+
 func TestEqualTreatsBlankAndWhitespaceOnlyCellsAsEmpty(t *testing.T) {
 	for _, v := range []string{"", " ", "\t", "\n", "   "} {
 		if !Equal(v, "") {
