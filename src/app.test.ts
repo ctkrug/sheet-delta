@@ -338,6 +338,13 @@ describe("createApp — download", () => {
     expect(text).toContain("Change,Row,id,total");
     expect(text).toContain("200 -> 250");
 
+    // The object URL is revoked on a later tick, so let it happen while the
+    // stub is still installed: jsdom has no object URLs of its own to fall
+    // back on, and a leaked blob URL pins its blob in memory for the life of
+    // the document.
+    await flush();
+    expect(created).toEqual([]);
+
     vi.unstubAllGlobals();
   });
 });
