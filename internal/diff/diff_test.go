@@ -3,6 +3,7 @@ package diff
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -119,6 +120,61 @@ func TestDiffPairsARowThatBothMovedAndChanged(t *testing.T) {
 	}
 	if len(got.Rows) != 3 {
 		t.Errorf("rendered %d rows, want 3\n%s", len(got.Rows), render(got))
+	}
+}
+
+// A block too big to search all-pairs falls back to pairing rows by
+// position. That branch only fires above maxBlockComparisons, so nothing
+// smaller reaches it — and it is the path a genuinely large edited sheet
+// takes, which is exactly when a wrong answer is hardest to spot by eye.
+func TestDiffPairsALargeEditedBlockPositionally(t *testing.T) {
+	const n = 400 // 400*400 = 160,000 comparisons, over the budget
+	before := Sheet{Header: []string{"id", "name", "total"}}
+	after := Sheet{Header: []string{"id", "name", "total"}}
+	for i := 0; i < n; i++ {
+		id := strconv.Itoa(i)
+		before.Rows = append(before.Rows, []string{id, "name-" + id, strconv.Itoa(100 + i)})
+		// Every row's total is edited, so no row fingerprints equal and the
+		// whole sheet lands in one change block.
+		after.Rows = append(after.Rows, []string{id, "name-" + id, strconv.Itoa(900 + i)})
+	}
+
+	got := Diff(before, after)
+
+	if got.Summary.RowsChanged != n {
+		t.Errorf("RowsChanged = %d, want %d", got.Summary.RowsChanged, n)
+	}
+	if got.Summary.RowsAdded != 0 || got.Summary.RowsRemoved != 0 {
+		t.Errorf("edited rows reported as +%d/-%d, want 0/0",
+			got.Summary.RowsAdded, got.Summary.RowsRemoved)
+	}
+	if got.Summary.CellsChanged != n {
+		t.Errorf("CellsChanged = %d, want %d (one total per row)", got.Summary.CellsChanged, n)
+	}
+	if len(got.Rows) != n {
+		t.Errorf("rendered %d rows, want %d", len(got.Rows), n)
+	}
+}
+
+// The other side of that budget: rows too dissimilar to be the same row
+// must stay honest adds and removes rather than pair up just because they
+// sit at the same position.
+func TestDiffLeavesADissimilarLargeBlockAsAddsAndRemoves(t *testing.T) {
+	const n = 400
+	before := Sheet{Header: []string{"id", "name", "total"}}
+	after := Sheet{Header: []string{"id", "name", "total"}}
+	for i := 0; i < n; i++ {
+		before.Rows = append(before.Rows, []string{strconv.Itoa(i), "alpha-" + strconv.Itoa(i), strconv.Itoa(i)})
+		after.Rows = append(after.Rows, []string{strconv.Itoa(i + 10_000), "omega-" + strconv.Itoa(i), strconv.Itoa(i + 5)})
+	}
+
+	got := Diff(before, after)
+
+	if got.Summary.RowsChanged != 0 {
+		t.Errorf("RowsChanged = %d, want 0 — unrelated rows must not pair", got.Summary.RowsChanged)
+	}
+	if got.Summary.RowsAdded != n || got.Summary.RowsRemoved != n {
+		t.Errorf("summary = +%d/-%d, want +%d/-%d", got.Summary.RowsAdded, got.Summary.RowsRemoved, n, n)
 	}
 }
 
