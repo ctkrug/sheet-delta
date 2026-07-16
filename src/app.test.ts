@@ -9,6 +9,22 @@ const diffSheets = vi.hoisted(() => vi.fn());
 const loadEngine = vi.hoisted(() => vi.fn());
 vi.mock("./engine", () => ({ diffSheets, loadEngine }));
 
+// Parsing stays real — the point is that actual files reach the engine —
+// but a file named "slow.*" takes its time, so a test can drop a second
+// file while the first is still being read. A 60MB workbook really does
+// take long enough for that to happen.
+vi.mock("./parse", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./parse")>();
+  return {
+    ...actual,
+    parseFile: async (file: File) => {
+      const workbook = await actual.parseFile(file);
+      if (file.name.startsWith("slow")) await new Promise((r) => setTimeout(r, 60));
+      return workbook;
+    },
+  };
+});
+
 const { createApp } = await import("./app");
 const { SheetDeltaError } = await import("./types");
 import type { DiffResult, Summary } from "./types";
@@ -339,6 +355,23 @@ describe("createApp — error states", () => {
 
     expect(stageView()).toBe("error");
     expect(container.querySelector(".errorpanel__text")?.textContent).toContain("chart.png");
+  });
+
+  // Dropping the wrong file and immediately dropping the right one is an
+  // ordinary correction. If the slower first read lands last it wins, and
+  // the user is shown a diff of a file they already replaced.
+  it("keeps the last file dropped on a zone, not the slowest", async () => {
+    dropOn(zones()[0], csvFile("slow-wrong.csv", "id,total\n1,111\n"));
+    dropOn(zones()[0], csvFile("right.csv", "id,total\n1,200\n"));
+    await flush();
+    dropOn(zones()[1], csvFile("after.csv", "id,total\n1,250\n"));
+    await flush();
+
+    expect(zones()[0].textContent).toContain("right.csv");
+    expect(zones()[0].textContent).not.toContain("slow-wrong.csv");
+    // The engine must be comparing the file the zone claims to hold.
+    const [before] = diffSheets.mock.calls.at(-1)!;
+    expect(before.rows).toEqual([["1", "200"]]);
   });
 
   // An unexpected internal error must still read as a designed state, not
