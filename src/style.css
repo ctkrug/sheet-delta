@@ -188,32 +188,72 @@ a {
   flex: none;
 }
 
-.wordmark__glyph path {
+/* The glyph is a sheet: a ruled cell grid in blueprint ink, with one cell
+   struck by the pen. It has to survive being 16px in a browser tab. */
+.wordmark__grid {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 5;
-  stroke-linejoin: round;
-  /* The delta draws itself in, like a pen tracing it. Once, on load. */
-  stroke-dasharray: 132;
-  stroke-dashoffset: 132;
-  animation: trace-glyph 900ms ease-out forwards;
+  stroke-width: 4;
 }
 
-@keyframes trace-glyph {
-  to {
-    stroke-dashoffset: 0;
-  }
+.wordmark__rules {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  opacity: 0.5;
+}
+
+.wordmark__mark {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 4;
+  stroke-linecap: round;
 }
 
 .wordmark__text {
+  position: relative;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 21px;
   letter-spacing: -0.02em;
 }
 
-.wordmark__accent {
-  color: var(--accent);
+/* The signature: a red pen stroke that draws itself under the name on load.
+   Absolute so the uneven hand-drawn line can overhang the word slightly the
+   way a real pen stroke does, without widening the wordmark's box. */
+.wordmark__rule {
+  position: absolute;
+  left: -2px;
+  right: -3px;
+  bottom: -3px;
+  width: auto;
+  height: 6px;
+}
+
+.wordmark__rule path {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: draw-redline 700ms 200ms ease-out forwards;
+}
+
+@keyframes draw-redline {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The flourish is decoration: without motion, the line is simply already
+   drawn rather than absent. */
+@media (prefers-reduced-motion: reduce) {
+  .wordmark__rule path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* Pin the tally and the download together on the right, so the download

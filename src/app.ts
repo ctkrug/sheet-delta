@@ -45,14 +45,24 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** The wordmark: a hand-drawn delta that traces itself in on load. */
+/**
+ * The wordmark: a grid-cell glyph, and a red pen stroke that draws itself
+ * under the name on load — the product performing its own name.
+ */
 function renderWordmark(): HTMLElement {
   const mark = el("div", "wordmark");
   mark.innerHTML = `
     <svg class="wordmark__glyph" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-      <path d="M32 12 L52 50 L12 50 Z" />
+      <rect class="wordmark__grid" x="5" y="13" width="54" height="38" rx="2" />
+      <path class="wordmark__rules" d="M5 26 H59 M23 13 V51 M41 13 V51" />
+      <path class="wordmark__mark" d="M27 36 L37 28" />
     </svg>
-    <span class="wordmark__text">Sheet<span class="wordmark__accent">Delta</span></span>
+    <span class="wordmark__text">
+      Redline
+      <svg class="wordmark__rule" viewBox="0 0 120 8" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path d="M2 5.5 C 28 2.5, 62 6.5, 118 3" />
+      </svg>
+    </span>
   `;
   return mark;
 }

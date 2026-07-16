@@ -123,7 +123,7 @@ beforeEach(() => {
 
 describe("createApp — shell", () => {
   it("renders the wordmark, both drop zones, and the summary bar", () => {
-    expect(container.querySelector(".wordmark")?.textContent).toContain("Sheet");
+    expect(container.querySelector(".wordmark")?.textContent).toContain("Redline");
     expect(zones()).toHaveLength(2);
     expect(container.querySelector(".summary")).not.toBeNull();
   });

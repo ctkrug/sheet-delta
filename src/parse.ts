@@ -120,7 +120,7 @@ function toSheet(worksheet: XLSX.WorkSheet): Sheet {
 export async function parseFile(file: File): Promise<Workbook> {
   if (!isAcceptedFile(file.name)) {
     throw new SheetDeltaError(
-      `"${file.name}" isn't a spreadsheet Sheet Delta can read. Accepted formats: ${formatList(ACCEPTED_EXTENSIONS)}.`,
+      `"${file.name}" isn't a spreadsheet Redline can read. Accepted formats: ${formatList(ACCEPTED_EXTENSIONS)}.`,
     );
   }
   if (file.size === 0) {
