@@ -38,16 +38,17 @@ lit up. Rows that were only reordered stay quiet.
 - **Everything client-side** — no file ever leaves the browser. There's no backend to this
   app; it's a static site.
 
-## Planned features
+## Features
 
-- [ ] Drag-and-drop two-file input (CSV, XLS, XLSX)
-- [ ] Row-aware, column-aware cell-level diff (the core algorithm)
-- [ ] Inline grid rendering with added / removed / changed highlighting
-- [ ] Moved-row detection (no false "changed" on pure reorders)
-- [ ] Column insertion/removal handling (not just row alignment)
-- [ ] Diff summary bar (rows added / removed / changed, cells changed)
+- [x] Drag-and-drop two-file input (CSV, XLS, XLSX), with click-to-browse
+- [x] Row-aware, column-aware cell-level diff (the core algorithm)
+- [x] Inline grid rendering with added / removed / changed highlighting
+- [x] Moved-row detection (no false "changed" on pure reorders)
+- [x] Column insertion/removal handling (not just row alignment)
+- [x] Diff summary bar (rows added / removed / changed / moved, cells changed)
+- [x] Multi-sheet workbooks: pick which sheet to compare
 - [ ] Export the diff view as CSV or a shareable static HTML snapshot
-- [ ] Large-file performance via WASM (tested against sheets with 50k+ rows)
+- [ ] Large-file performance tuning (50k rows diff correctly; see the backlog)
 
 ## Stack
 
@@ -59,6 +60,7 @@ lit up. Rows that were only reordered stay quiet.
 | Hosting       | Static site, no backend                    |
 
 See [`docs/VISION.md`](docs/VISION.md) for the full design rationale,
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a map of the codebase,
 [`docs/DESIGN.md`](docs/DESIGN.md) for the visual direction, and
 [`docs/BACKLOG.md`](docs/BACKLOG.md) for the build plan.
 
@@ -66,17 +68,24 @@ See [`docs/VISION.md`](docs/VISION.md) for the full design rationale,
 
 ```sh
 npm install
-npm run dev      # start the Vite dev server
-npm test         # run frontend tests
-npm run build    # compile the WASM engine + build the static site into dist/
-go test ./...    # run the diff engine's Go test suite
+npm run dev       # start the Vite dev server
+npm test          # run frontend tests
+npm run lint      # typecheck
+npm run build     # compile the WASM engine + build the static site into dist/
+npm run test:wasm # exercise the compiled engine (needs a build first)
+go test ./...     # run the diff engine's Go test suite
 ```
 
 Building the WASM engine requires a local Go 1.22+ toolchain in addition to Node.
+`npm run build` produces a self-contained static `dist/` with only relative paths, so it
+can be served from any subpath.
 
 ## Status
 
-Early scaffold. Not yet functional — see the backlog for what's next.
+Working end to end: drop two files and get the grid diff. Export, a browser-verified
+design pass, and large-sheet performance tuning are still open — see
+[`docs/BACKLOG.md`](docs/BACKLOG.md), and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+for how the code fits together.
 
 ## License
 
