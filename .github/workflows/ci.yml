@@ -37,3 +37,6 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      # Runs after the build, which is what produces public/main.wasm.
+      - name: WASM boundary smoke test
+        run: npm run test:wasm
