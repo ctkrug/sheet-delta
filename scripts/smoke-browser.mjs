@@ -88,6 +88,34 @@ try {
     await page.close();
   }
 
+  // ---- the download actually downloads ------------------------------------
+  // jsdom can prove the blob's contents but not that a browser writes a file
+  // from it, which is the half a user experiences.
+  {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+    await page.goto(`http://localhost:${PORT}/`, { waitUntil: "networkidle" });
+    await give(page, 0, { name: "q1.csv", mimeType: "text/csv", buffer: Buffer.from("id,total\n1,200\n2,300\n") });
+    await page.waitForTimeout(300);
+    await give(page, 1, { name: "q2.csv", mimeType: "text/csv", buffer: Buffer.from("id,total\n1,250\n2,300\n") });
+    await page.waitForSelector(".stage[data-view='diff'] .grid__table", { timeout: 30_000 });
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator(".topbar__download").click(),
+    ]);
+    check("the download is named after both files", download.suggestedFilename(), "diff-q1-vs-q2.csv");
+
+    const stream = await download.createReadStream();
+    let text = "";
+    for await (const chunk of stream) text += chunk;
+    check("the file holds the diff that was on screen", text.trimEnd().split("\r\n"), [
+      "Change,Row,id,total",
+      "changed,2,1,200 -> 250",
+      ",3,2,300",
+    ]);
+    await page.close();
+  }
+
   // ---- the same data from two exporters ----------------------------------
   // Excel writes CSV with a BOM, Google Sheets does not. Comparing one
   // against the other is an ordinary thing to do and must be quiet.
