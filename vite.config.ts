@@ -12,5 +12,13 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["src/**"],
+      // The test files themselves, the shared fixtures, and the entry point,
+      // which is a mount call with nothing to assert about it.
+      exclude: ["src/**/*.test.ts", "src/test-setup.ts", "src/main.ts"],
+      reporter: ["text", "html"],
+    },
   },
 });
