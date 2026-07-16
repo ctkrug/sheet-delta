@@ -94,6 +94,37 @@ describe("parseFile — CSV", () => {
     ]);
   });
 
+  // Excel writes CSV with a UTF-8 BOM; Google Sheets, pandas and most
+  // exporters do not. Both are UTF-8, so both must read as UTF-8.
+  it("reads UTF-8 whether or not the export left a BOM", async () => {
+    const body = "name,note\ncafé,naïve\n東京,🎉\n";
+
+    const plain = (await parseFile(fileOf("plain.csv", body))).sheets.Sheet1;
+    const withBom = (await parseFile(fileOf("bom.csv", `﻿${body}`))).sheets.Sheet1;
+
+    expect(plain.header).toEqual(["name", "note"]);
+    expect(plain.rows).toEqual([
+      ["café", "naïve"],
+      ["東京", "🎉"],
+    ]);
+    // The BOM is a marker, not data: it must not survive into the header,
+    // or the engine would align "name" against "﻿name" and call the
+    // column added-and-removed.
+    expect(withBom).toEqual(plain);
+  });
+
+  // The false positive this would cause is the tool's cardinal sin: the
+  // same sheet exported from two tools, differing only in the BOM, must
+  // not read as two different sheets.
+  it("gives a BOM'd and a plain export of the same data identical sheets", async () => {
+    const body = "id,name\n1,Ada Lovelace\n2,José\n";
+
+    const a = (await parseFile(fileOf("excel.csv", `﻿${body}`))).sheets.Sheet1;
+    const b = (await parseFile(fileOf("sheets.csv", body))).sheets.Sheet1;
+
+    expect(a).toEqual(b);
+  });
+
   it("preserves leading zeros and long digit strings as text", async () => {
     const sheet = (await parseFile(fileOf("z.csv", "id,code\n1,007\n2,00123456789012345678\n")))
       .sheets.Sheet1;
