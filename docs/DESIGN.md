@@ -2,12 +2,17 @@
 
 ## 1. Aesthetic direction
 
-**Blueprint / technical.** Sheet Delta reads like a drafting table, not a SaaS dashboard: a
+**Blueprint / technical.** Redline reads like a drafting table, not a SaaS dashboard: a
 warm cream graph-paper background, precise blueprint-ink-blue lines, and a monospace ledger
 font for data — evoking engineering schematics and precision instruments rather than a dark
 "developer tool" chrome. This is a deliberate break from dark-theme-by-default: a diff tool
 lives or dies on legibility of dense tabular data, and a light, high-contrast paper surface
 reads that data better than a glowing dark panel.
+
+The name carries the direction: a *redline* is the marked-up print a drafter hands back with
+the changes struck on it in red pen. So the page is the blue print, and every mark the tool
+makes is the red pen. Blue stays structural (rules, links, focus, the CTA); red and green are
+reserved for what changed. Nothing else competes for those two colors.
 
 ## 2. Tokens
 
@@ -58,14 +63,18 @@ in place. Everything else (upload zone, summary bar) is a thin frame around it.
 
 ## 4. Signature detail
 
-The wordmark's **Δ (delta)** glyph is custom-drawn (inline SVG, not just the letter shape) and
-redraws itself with a short stroke-dashoffset animation on load, like a pen tracing it — a
-one-time flourish, not a distracting loop. The diff summary bar's counters (added / removed /
-changed) digit-roll into place when a comparison completes, echoing an odometer/ledger tally
-rather than a flat text swap.
+**The redline draws itself.** The wordmark is "Redline" set in the display font over a
+custom-drawn inline-SVG pen stroke: a slightly uneven hand-drawn line, in red, that traces
+itself under the word on load via stroke-dashoffset — the product performing its own name. A
+one-time flourish, not a distracting loop, and it is skipped under `prefers-reduced-motion`.
+Left of it sits a small blueprint-blue glyph of a grid cell, so the mark reads as "a
+spreadsheet, marked up" at favicon size.
+
+The diff summary bar's counters (added / removed / changed) digit-roll into place when a
+comparison completes, echoing an odometer/ledger tally rather than a flat text swap.
 
 ## 5. Games/toys juice plan
 
-Not applicable — Sheet Delta is a data tool, not a game. Interaction feedback still follows the
+Not applicable — Redline is a data tool, not a game. Interaction feedback still follows the
 craft rules in the shared design standard (hover/focus/active states, 150ms transitions, a
 designed empty/loading/error state for the upload flow) but there is no synthesized SFX plan.
