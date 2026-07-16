@@ -318,6 +318,29 @@ describe("createApp — error states", () => {
     expect(stageView()).toBe("diff");
   });
 
+  // A diff of two big sheets runs for seconds, which is plenty of time to
+  // drop a third file. If the comparison it started before the error lands
+  // afterwards, it silently replaces the error panel with a grid — the user
+  // is told nothing about the file they just dropped and is left reading a
+  // diff of files that are no longer both loaded.
+  it("keeps the error when a comparison it superseded lands late", async () => {
+    let releaseSlow!: (r: DiffResult) => void;
+    diffSheets.mockReturnValueOnce(new Promise<DiffResult>((resolve) => (releaseSlow = resolve)));
+
+    await dropPair();
+    expect(stageView()).toBe("loading");
+
+    dropOn(zones()[1], new File(["x"], "chart.png"));
+    await flush();
+    expect(stageView()).toBe("error");
+
+    releaseSlow(changedResult());
+    await flush();
+
+    expect(stageView()).toBe("error");
+    expect(container.querySelector(".errorpanel__text")?.textContent).toContain("chart.png");
+  });
+
   // An unexpected internal error must still read as a designed state, not
   // leak a stack trace at the user.
   it("shows a human message for an unexpected failure", async () => {
