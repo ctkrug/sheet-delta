@@ -11,9 +11,9 @@ func TestDiffRowsDetectsReorderAsUnchanged(t *testing.T) {
 	deletes, inserts := 0, 0
 	for _, op := range ops {
 		switch op.Op {
-		case Delete:
+		case OpDelete:
 			deletes++
-		case Insert:
+		case OpInsert:
 			inserts++
 		}
 	}
@@ -33,7 +33,7 @@ func TestDiffRowsAddedAndRemovedRows(t *testing.T) {
 
 	var inserts int
 	for _, op := range ops {
-		if op.Op == Insert {
+		if op.Op == OpInsert {
 			inserts++
 		}
 	}
@@ -51,7 +51,7 @@ func TestDiffRowsIdenticalSheetsAreAllEqual(t *testing.T) {
 		t.Fatalf("got %d ops, want 2: %+v", len(ops), ops)
 	}
 	for _, op := range ops {
-		if op.Op != Equal {
+		if op.Op != OpEqual {
 			t.Fatalf("op %+v is not Equal for identical sheets", op)
 		}
 	}
@@ -92,11 +92,11 @@ func TestDiffRowsFullReplacement(t *testing.T) {
 	var deletes, inserts, equals int
 	for _, op := range ops {
 		switch op.Op {
-		case Delete:
+		case OpDelete:
 			deletes++
-		case Insert:
+		case OpInsert:
 			inserts++
-		case Equal:
+		case OpEqual:
 			equals++
 		}
 	}

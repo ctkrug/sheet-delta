@@ -17,19 +17,19 @@ import (
 type Op int
 
 const (
-	// Equal marks a row present in both sheets at the same aligned position.
-	Equal Op = iota
-	// Insert marks a row present only in the "after" sheet.
-	Insert
-	// Delete marks a row present only in the "before" sheet.
-	Delete
+	// OpEqual marks a row present in both sheets at the same aligned position.
+	OpEqual Op = iota
+	// OpInsert marks a row present only in the "after" sheet.
+	OpInsert
+	// OpDelete marks a row present only in the "before" sheet.
+	OpDelete
 )
 
 // RowDiff describes one row of the aligned output.
 type RowDiff struct {
 	Op     Op
-	AIndex int // index into the "before" rows, or -1 if Insert
-	BIndex int // index into the "after" rows, or -1 if Delete
+	AIndex int // index into the "before" rows, or -1 if OpInsert
+	BIndex int // index into the "after" rows, or -1 if OpDelete
 }
 
 // fingerprint collapses a row's cell values into a single comparable key.
@@ -41,7 +41,7 @@ func fingerprint(row []string) string {
 }
 
 // DiffRows aligns the rows of a and b using longest-common-subsequence over
-// row fingerprints, returning an edit script of Equal/Insert/Delete
+// row fingerprints, returning an edit script of OpEqual/OpInsert/OpDelete
 // operations in output order.
 func DiffRows(a, b [][]string) []RowDiff {
 	fa := make([]string, len(a))
@@ -76,22 +76,22 @@ func DiffRows(a, b [][]string) []RowDiff {
 	for i < n && j < m {
 		switch {
 		case fa[i] == fb[j]:
-			result = append(result, RowDiff{Op: Equal, AIndex: i, BIndex: j})
+			result = append(result, RowDiff{Op: OpEqual, AIndex: i, BIndex: j})
 			i++
 			j++
 		case lcs[i+1][j] >= lcs[i][j+1]:
-			result = append(result, RowDiff{Op: Delete, AIndex: i, BIndex: -1})
+			result = append(result, RowDiff{Op: OpDelete, AIndex: i, BIndex: -1})
 			i++
 		default:
-			result = append(result, RowDiff{Op: Insert, AIndex: -1, BIndex: j})
+			result = append(result, RowDiff{Op: OpInsert, AIndex: -1, BIndex: j})
 			j++
 		}
 	}
 	for ; i < n; i++ {
-		result = append(result, RowDiff{Op: Delete, AIndex: i, BIndex: -1})
+		result = append(result, RowDiff{Op: OpDelete, AIndex: i, BIndex: -1})
 	}
 	for ; j < m; j++ {
-		result = append(result, RowDiff{Op: Insert, AIndex: -1, BIndex: j})
+		result = append(result, RowDiff{Op: OpInsert, AIndex: -1, BIndex: j})
 	}
 	return result
 }
