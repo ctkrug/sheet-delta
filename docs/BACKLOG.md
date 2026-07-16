@@ -146,3 +146,51 @@ Where a criterion could not be verified in this environment, it says so rather t
     the keyboard path cannot silently dead-end). The picker's label is tied to its select and
     its control is 44px tall. The summary announces through a live region, now in correct
     singular/plural, and changed cells describe themselves in words.
+
+## Epic 5 — Closeout
+
+- [x] **Positioned and named the product**
+  - The working title "Sheet Delta" was a literal description of the function, which is the
+    naming trap: three syllables across two words, and interchangeable with any other
+    spreadsheet-diff tool. The product ships as **Redline**, after the marked-up print a
+    drafter hands back with the changes struck on it in red pen, which is what the tool
+    produces and the term its audience already uses.
+  - The name deepened the existing blueprint direction rather than fighting it: the page is
+    the blue print, every mark the tool makes is the red pen, and the wordmark's signature is
+    that pen stroke drawing itself under the name. The delta glyph left with the old name.
+  - The repo, slug and URL stay `sheet-delta`: they are an address, not a brand.
+- [x] **Turned away files that are not spreadsheets**
+  - SheetJS never rejects input. Given anything it does not recognize it decodes the bytes as
+    text and parses them into a one-column sheet, so a JPEG named `data.csv` rendered a grid
+    of mojibake and the "not really a spreadsheet" error could never fire for the case it
+    named. `parse.ts` now sniffs the bytes and refuses what is not text, unless the file opens
+    with a real `.xlsx`/`.xls` container magic. The undecodable-byte threshold is deliberately
+    loose so a Latin-1 CSV, whose accents do not decode, still reads.
+- [x] **Fixed a panic in the alignment on lopsided sheets**
+  - Found by the fuzzer at the ship gate. The reverse middle-snake search walks diagonals
+    centred on `delta = len(a)-len(b)` rather than on zero, so two columns against twelve
+    reached diagonal -18 while the vector was offset for 15, and the engine panicked instead
+    of diffing. Reachable in the wild: a sheet exported with trailing blank columns shares
+    every header key, so nothing is dropped as unmatchable and the alignment sees the whole
+    lopsided pair. The offset now covers the longer side plus half the span, which bounds
+    every subregion of the recursion. Pinned by the fuzz corpus entry, a unit test at the
+    `alignKeys` level, a readable one at the `Diff` level, and 4,800 lopsided random pairs
+    checked against the naive LCS reference.
+- [x] **Answered the search that brings people here**
+  - The page carried a bare product name as its title and nothing a search engine could read.
+    It now leads with the job it does, and 589 words of reference copy and FAQ sit below the
+    app as static markup, so they read without running any script.
+- [x] **Removed the dead code**
+  - `Op.UnmarshalJSON` decoded data nothing decodes: ops cross the WASM boundary Go to JS
+    only, and the only test exercising it existed to exercise it. The wire-format test now
+    reads ops as strings the way the frontend does.
+
+### Known gaps at v1.0.0
+
+- **Large-sheet performance** is measured but unverified against its target: a 50k-row compare
+  takes ~5.9s on a 2-vCPU box against a 3s budget written for a mid-tier laptop. The cost is
+  the JSON boundary, not the algorithm (see `docs/ARCHITECTURE.md`), so beating it means a
+  leaner encoding, which is a protocol change rather than a tuning pass.
+- **The row-number gutter can show the same number twice.** Removed rows are numbered from the
+  "before" sheet and everything else from the "after" sheet, so the two can collide next to
+  each other. Honest but momentarily confusing; git shows two columns for exactly this reason.
