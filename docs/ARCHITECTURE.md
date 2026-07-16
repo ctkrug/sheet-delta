@@ -41,6 +41,7 @@ internal/diff/
 scripts/
   build-wasm.sh       builds main.wasm + copies wasm_exec.js into public/
   smoke-wasm.mjs      exercises the real compiled engine over the JS boundary
+  smoke-browser.mjs   drives the built app in a real Chromium (layout + keyboard)
 public/               static assets + build output (main.wasm, wasm_exec.js)
 ```
 
@@ -64,8 +65,11 @@ The engine pipeline (`diff.go`'s `Diff`), which is the actual product:
    sheet still matches up.
 3. **Pair the leftovers** (`pair.go`). Alignment can only say equal/insert/delete, so a
    moved row looks like delete+insert and a one-cell edit looks like two changed rows.
-   Moves pair globally by fingerprint; modifications pair by similarity within a change
-   block.
+   Three passes, cheapest and most certain first: moves pair globally by exact
+   fingerprint; modifications pair by similarity within a block of consecutive changes;
+   whatever is still unpaired is then matched against the rest of the leftovers, which is
+   what catches a row that both moved and was edited. The last pass skips itself when the
+   leftover set is too large to search.
 4. **Compare cells inside matched pairs only** — so exactly the changed cells are flagged.
 
 Each step exists because of a specific false positive it removes. That is the whole
@@ -101,9 +105,12 @@ reconstructs the two-dimensional shape of the data.
 | Dev server | `npm run dev` |
 | Go tests | `go test ./...` |
 | Frontend tests | `npm test` |
+| Coverage | `npm run test:coverage` |
 | Typecheck | `npm run lint` |
 | Build (WASM + site) | `npm run build` → `dist/` |
 | Real-engine smoke test | `npm run test:wasm` (needs a build first) |
+| Real-browser smoke test | `npm run test:browser` (needs a build first) |
+| Fuzz the engine | `go test ./internal/diff -fuzz FuzzDiff -fuzztime 30s` |
 | Everything CI runs | see `.github/workflows/ci.yml` |
 
 `npm run build` emits a self-contained static `dist/`. Every path is relative (Vite
@@ -121,19 +128,22 @@ site is served from the `/sheet-delta` subpath, where a leading-slash path would
 - **`scripts/smoke-wasm.mjs` covers the seam neither reaches**: the real compiled binary
   across the real JS boundary. Without it, a rename in `cmd/wasm/main.go` would break the
   app with every other test green.
+- **`scripts/smoke-browser.mjs` covers what jsdom structurally cannot**: layout and
+  scrolling. The pinned header, the absence of sideways page scroll at 390/768/1440, the
+  5,000-row cap and the keyboard path are all asserted against a real Chromium driving the
+  real engine. Both smoke tests run in CI.
+- **`FuzzDiffHoldsItsInvariants` (`fuzz_test.go`)** asserts what must hold for *any* pair
+  of sheets — above all that every row of both sheets renders exactly once. A dropped or
+  doubled row is invisible to the eye in a grid, so only a property test finds it.
 
 ## Known gaps
 
-- **Large-sheet performance (Story 9) is unverified against its target.** Measured on a
-  1-vCPU CI box, a 50k-row compare takes ~5s end to end, against a 3s budget defined for
-  a mid-tier laptop — so this neither passes nor fails yet; it needs measuring on target
-  hardware. The profile, if it needs work: JSON *unmarshal* inside WASM ~2.2s, the diff
-  itself ~2.2s, marshal ~0.8s, JS parse ~0.5s. The engine is not the problem — the JSON
-  boundary is. The next lever is sending less across it (the frontend already holds the
-  cell values the result currently duplicates), not a faster algorithm.
-- **No visual verification has been done.** The CI box has no browser, so the design was
-  built to DESIGN.md and D2 by construction but never looked at. QA should open it.
-- **A row that is both moved and modified** reads as add + remove: move pairing needs an
-  exact fingerprint match, and modification pairing only looks within a change block.
-  Detecting a key column would fix this and is the obvious next step if it bites.
+- **Large-sheet performance (Story 9) is unverified against its target.** A 50k-row
+  compare takes ~5.5s end to end on a 2-vCPU box, against a 3s budget defined for a
+  mid-tier laptop — so this neither passes nor fails; it needs measuring on target
+  hardware. The profile: JSON *unmarshal* inside WASM ~2.2s, the diff itself ~2.2s,
+  marshal ~0.8s, JS parse ~0.5s. The engine is not the problem, the JSON boundary is —
+  but note that only the ~0.8s marshal is recoverable by returning indices instead of
+  values. The input still has to be read. Meaningfully beating this means a leaner
+  encoding across the boundary, not a faster algorithm, and that is a protocol change.
 - **Export (Story 12) is not built.**
