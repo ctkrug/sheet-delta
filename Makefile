@@ -1,4 +1,4 @@
-.PHONY: dev build test lint clean
+.PHONY: dev build test test-wasm lint clean
 
 dev:
 	npm run dev
@@ -9,6 +9,10 @@ build:
 test:
 	go test ./...
 	npm test
+
+# Exercises the compiled engine over the real JS boundary; needs a build.
+test-wasm: build
+	npm run test:wasm
 
 lint:
 	gofmt -l .
