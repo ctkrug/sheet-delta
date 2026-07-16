@@ -1,5 +1,7 @@
 # Sheet Delta
 
+[![CI](https://github.com/ctkrug/sheet-delta/actions/workflows/ci.yml/badge.svg)](https://github.com/ctkrug/sheet-delta/actions/workflows/ci.yml)
+
 **Drop in two spreadsheets. See exactly what changed — cell by cell, right on the grid.**
 
 Sheet Delta compares two CSV or Excel files and renders a git-diff-style, cell-level view of
@@ -56,8 +58,21 @@ lit up. Rows that were only reordered stay quiet.
 | Frontend      | TypeScript + Vite, static output           |
 | Hosting       | Static site, no backend                    |
 
-See [`docs/VISION.md`](docs/VISION.md) for the full design rationale and
+See [`docs/VISION.md`](docs/VISION.md) for the full design rationale,
+[`docs/DESIGN.md`](docs/DESIGN.md) for the visual direction, and
 [`docs/BACKLOG.md`](docs/BACKLOG.md) for the build plan.
+
+## Getting started
+
+```sh
+npm install
+npm run dev      # start the Vite dev server
+npm test         # run frontend tests
+npm run build    # compile the WASM engine + build the static site into dist/
+go test ./...    # run the diff engine's Go test suite
+```
+
+Building the WASM engine requires a local Go 1.22+ toolchain in addition to Node.
 
 ## Status
 
