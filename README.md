@@ -1,102 +1,143 @@
-# Sheet Delta
+# Redline
+
+**▶ Live demo — [apps.charliekrug.com/sheet-delta](https://apps.charliekrug.com/sheet-delta/)**
 
 [![CI](https://github.com/ctkrug/sheet-delta/actions/workflows/ci.yml/badge.svg)](https://github.com/ctkrug/sheet-delta/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-1E5AA8.svg)](LICENSE)
 
-**Drop in two spreadsheets. See exactly what changed — cell by cell, right on the grid.**
+**Compare two Excel files, highlight what actually changed.**
 
-Sheet Delta compares two CSV or Excel files and renders a git-diff-style, cell-level view of
-what actually changed: added rows, removed rows, and changed cells highlighted inline on the
-original grid. Everything runs client-side in your browser — no upload, no server, no account.
+Drop in last month's export and this month's. Redline lines the rows up by their content, so a
+row that only moved stays quiet and only the cells that really changed light up. It runs
+entirely in your browser: there is no server to upload to, and no account.
 
-## Why
+![Redline comparing two versions of a price list: a re-sorted row stays unmarked, two edited
+cells show their old value beside the new one, one row is struck through as removed and one is
+marked added.](docs/screenshot.png)
 
-Every "spreadsheet diff" tool people reach for today is really a text diff wearing a costume:
-it flattens the sheet to lines and diffs *those*, so if row 40 moves to row 41 the whole row
-lights up red/green even though nothing in it changed. That's noise, not a diff. Real change
-detection on tabular data has to be row- and column-aware — closer to a sequence alignment
-problem than a line diff.
+That is a vendor price list exported twice. Between the two, someone re-sorted the sheet,
+raised one price, revised one quantity, dropped a SKU and added another. Redline reports
+exactly that: 1 added, 1 removed, 2 changed cells. The re-sorted rows say nothing, because
+nothing in them changed.
 
-Sheet Delta adapts a proper diff algorithm to two dimensions: it aligns rows (so a moved row
-is recognized as *moved*, not deleted+added), then aligns columns, then does a cell-level
-comparison only within matched rows. The output is the spreadsheet grid itself, with only the
-cells that actually changed highlighted in place.
+## The problem it solves
 
-## The wow moment
+Paste those same two files into any text-diff tool and you get a wall of red and green.
+Text diffs compare line 1 to line 1, line 2 to line 2, and so on, so re-sorting the export
+shifts every line and every line reads as changed. The five edits you were looking for are
+buried in four thousand false ones.
 
-Drop in last month's export and this month's. Instead of a wall of red/green lines, you get
-the actual grid back — same shape, same layout — with just the handful of cells that changed
-lit up. Rows that were only reordered stay quiet.
+A spreadsheet is two-dimensional, and comparing one has to be too:
 
-## How it works
+1. **Columns are matched first**, by header name, so a field inserted upstream shifts nothing
+   after it.
+2. **Rows are fingerprinted by their contents** and aligned with a Myers longest-common-
+   subsequence pass, the same family of algorithm behind `git diff`, run over rows instead of
+   characters. A row's identity is what it says, not where it sits.
+3. **Cells are compared last**, only inside rows already established as the same row at two
+   points in time, so only genuine edits get marked.
 
-- **Diff engine** — written in Go, compiled to WebAssembly. It aligns **columns first**, by
-  header name, because a column inserted upstream shifts every later cell and would otherwise
-  make the whole sheet look changed. Rows are then fingerprinted over the columns the two
-  sheets share and aligned with a Myers LCS edit script — operating on row fingerprints
-  instead of characters, so a row's identity is its content, not its position. Leftover rows
-  are paired into moves and modifications, and only then are cells compared, inside matched
-  pairs, so exactly the changed cells are flagged.
-- **File parsing** — [SheetJS](https://sheetjs.com/) in the browser reads `.csv`, `.xlsx`, and
-  `.xls` into a common tabular representation before it's handed to the WASM diff engine.
-- **Everything client-side** — no file ever leaves the browser. There's no backend to this
-  app; it's a static site.
+The output is the grid you already know, marked up in place, which is the thing a line-based
+diff structurally cannot give you: it never reconstructs the shape of the data.
 
-## Features
+## What it does
 
-- [x] Drag-and-drop two-file input (CSV, XLS, XLSX), with click-to-browse
-- [x] Row-aware, column-aware cell-level diff (the core algorithm)
-- [x] Inline grid rendering with added / removed / changed highlighting
-- [x] Moved-row detection (no false "changed" on pure reorders)
-- [x] Column insertion/removal handling (not just row alignment)
-- [x] Diff summary bar (rows added / removed / changed / moved, cells changed)
-- [x] Multi-sheet workbooks: pick which sheet to compare
-- [x] Export the diff view as CSV (a changed cell exports as `before -> after`)
-- [ ] Large-file performance tuning (50k rows diff correctly; see the backlog)
+- **Reads .csv, .xlsx and .xls**, up to 100MB per file, and lets you pick the sheet to compare
+  in a multi-sheet workbook.
+- **Marks changed cells in place**, each showing its old value beside the new one.
+- **Tells reorders apart from edits**: a moved row is reported as moved, not as one deletion
+  plus one insertion.
+- **Survives an inserted column** without reporting every cell to its right as changed.
+- **Exports the diff as CSV**, where a changed cell reads `200 -> 250`, so it can go straight
+  into a ticket or a mail.
+- **Sends nothing anywhere.** The diff engine is Go compiled to WebAssembly and ships with the
+  page. Open your dev tools network tab and watch it stay silent while you compare.
 
-## Stack
+## Usage
 
-| Layer         | Choice                                   |
-|---------------|-------------------------------------------|
-| Diff engine   | Go, compiled to WebAssembly                |
-| File parsing  | SheetJS (`xlsx`) in TypeScript             |
-| Frontend      | TypeScript + Vite, static output           |
-| Hosting       | Static site, no backend                    |
+Open the [live demo](https://apps.charliekrug.com/sheet-delta/), drop a file on **Before** and
+another on **After**. That is the whole flow. Nothing is installed and nothing is uploaded.
 
-See [`docs/VISION.md`](docs/VISION.md) for the full design rationale,
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a map of the codebase,
-[`docs/DESIGN.md`](docs/DESIGN.md) for the visual direction, and
-[`docs/BACKLOG.md`](docs/BACKLOG.md) for the build plan.
+Given `prices-jan.csv`:
 
-## Getting started
+```csv
+sku,product,unit_price,qty
+A-1042,Cold brew concentrate,18.50,240
+B-2210,Oat milk 1L,3.20,1800
+C-3391,Espresso beans 1kg,24.00,320
+```
+
+and `prices-feb.csv`, re-sorted with one price raised:
+
+```csv
+sku,product,unit_price,qty
+C-3391,Espresso beans 1kg,24.00,320
+A-1042,Cold brew concentrate,19.25,240
+B-2210,Oat milk 1L,3.20,1800
+```
+
+Redline reports one changed cell and one moved row, rather than three rewritten rows.
+Downloading that comparison gives exactly this:
+
+```csv
+Change,Row,sku,product,unit_price,qty
+moved,2,C-3391,Espresso beans 1kg,24.00,320
+changed,3,A-1042,Cold brew concentrate,18.50 -> 19.25,240
+,4,B-2210,Oat milk 1L,3.20,1800
+```
+
+The row that only moved is labelled `moved` and its cells are left alone. A text diff would
+have called it one deletion and one insertion.
+
+## Running it yourself
+
+Building the WebAssembly engine needs a Go 1.22+ toolchain alongside Node 20+.
 
 ```sh
 npm install
 npm run dev           # start the Vite dev server
-npm test              # run frontend tests
-npm run test:coverage # ...with a coverage report
-npm run lint          # typecheck
-npm run build         # compile the WASM engine + build the static site into dist/
-npm run test:wasm     # exercise the compiled engine (needs a build first)
-npm run test:browser  # drive the built app in a real Chromium (needs a build first)
-go test ./...         # run the diff engine's Go test suite
+npm run build         # compile the WASM engine and build the static site into dist/
 ```
 
-Building the WASM engine requires a local Go 1.22+ toolchain in addition to Node.
-`npm run build` produces a self-contained static `dist/` with only relative paths, so it
-can be served from any subpath.
+`npm run build` produces a self-contained static `dist/` using only relative paths, so it can be
+served from any subpath, including a bare `file://` open.
 
-`npm run test:browser` needs a Chromium, which `npx playwright install chromium` fetches
-once. It covers what jsdom structurally cannot: real layout, real scrolling, and the real
-compiled engine.
+### Tests
 
-## Status
+```sh
+go test ./...         # the diff engine's own suite, including a fuzz test
+npm test              # the frontend suite
+npm run test:coverage # ...with a coverage report
+npm run lint          # typecheck
+npm run test:wasm     # exercise the compiled engine over the real JS boundary (needs a build)
+npm run test:browser  # drive the built app in a real Chromium (needs a build)
+```
 
-Feature complete: drop two files, get the grid diff, download it as CSV. The layout, the
-keyboard path, the download and the compiled engine are all verified in a real browser by
-`npm run test:browser`. The one open item is the large-sheet performance target, which is
-measured but unmet on slow hardware — see [`docs/BACKLOG.md`](docs/BACKLOG.md), and
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the code fits together.
+`npm run test:browser` needs a Chromium, which `npx playwright install chromium` fetches once.
+It covers what jsdom structurally cannot: real layout, real scrolling, and the real compiled
+engine. `make test`, `make test-wasm` and `make test-browser` wrap the same commands.
+
+## How it is built
+
+| Layer        | Choice                                    |
+|--------------|-------------------------------------------|
+| Diff engine  | Go, compiled to WebAssembly                |
+| File parsing | [SheetJS](https://sheetjs.com/) in TypeScript |
+| Frontend     | TypeScript + Vite, static output           |
+| Hosting      | Static site, no backend                    |
+
+Go handles the alignment because a longest-common-subsequence pass over tens of thousands of
+rows is real work, and it keeps the core algorithm testable on its own, away from the DOM.
+SheetJS stays the parser because rewriting `.xlsx` parsing would be effort spent nowhere near
+the thing that makes this tool different.
+
+Further reading: [`docs/VISION.md`](docs/VISION.md) for the rationale,
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a map of the codebase,
+[`docs/DESIGN.md`](docs/DESIGN.md) for the visual direction, and
+[`docs/BACKLOG.md`](docs/BACKLOG.md) for the build log.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT, see [`LICENSE`](LICENSE).
+
+More of Charlie's projects → https://apps.charliekrug.com
