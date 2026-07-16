@@ -81,7 +81,13 @@ export async function parseFile(file: File): Promise<Workbook> {
   let workbook: XLSX.WorkBook;
   try {
     const buffer = await file.arrayBuffer();
-    workbook = XLSX.read(buffer, { type: "array", raw: false });
+    // codepage 65001 (UTF-8) applies to text formats, where the bytes carry
+    // no encoding of their own. Without it SheetJS falls back to a legacy
+    // single-byte codepage unless the file opens with a BOM — so a CSV from
+    // Excel (which writes one) and the same CSV from Google Sheets (which
+    // does not) would parse to different text and diff as changed on every
+    // row with an accent in it. .xlsx is unaffected: it declares UTF-8.
+    workbook = XLSX.read(buffer, { type: "array", raw: false, codepage: 65001 });
   } catch (cause) {
     throw new SheetDeltaError(
       `"${file.name}" couldn't be read. It may be corrupt, password-protected, or not really a spreadsheet.`,
