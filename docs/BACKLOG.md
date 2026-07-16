@@ -104,12 +104,19 @@ Where a criterion could not be verified in this environment, it says so rather t
     single documented rule, applied consistently by the diff engine.
   - *Verified:* `value_test.go` and `diff_test.go`. The rule is documented on `Normalize` and
     is the only comparison in the package.
-- [ ] **Story 12: Export the diff result**
+- [x] **Story 12: Export the diff result**
   - A "download diff" action produces a CSV or static HTML snapshot capturing the highlighted
     grid.
   - The exported file opens correctly and visually reflects the same changed cells shown
     on-screen at export time.
-  - *Not started.*
+  - *Verified:* `export.test.ts` covers the rendering (statuses, the grid's own row
+    numbering, both values of a changed cell, and RFC 4180 quoting so a sheet full of
+    commas and newlines survives its own export), `app.test.ts` covers the button's
+    lifecycle and the blob's contents, and `scripts/smoke-browser.mjs` downloads the file
+    from a real Chromium and reads it back. CSV, not HTML: what people do with a diff is
+    take it somewhere else, and everything reads CSV. A changed cell exports as
+    `before -> after`, which is how the highlight survives a format with no colour; the
+    file also round-trips back through a CSV parser in the tests.
 
 ## Epic 4 — Ship polish
 

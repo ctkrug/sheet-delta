@@ -27,6 +27,7 @@ src/
   engine.ts           loads main.wasm; exposes diffSheets()
   grid.ts             DiffResult → the spreadsheet grid (the hero)
   summary.ts          Summary → the rolling counter bar
+  export.ts           DiffResult → CSV text (the download)
   dropzone.ts         drag-and-drop / click-to-browse file zones
   style.css           the whole stylesheet; tokens from DESIGN.md
 cmd/wasm/main.go      the WASM bridge: sheetDelta.diff(before, after)
@@ -51,6 +52,10 @@ public/               static assets + build output (main.wasm, wasm_exec.js)
 2. **Parse** — `parse.ts` reads it with SheetJS into `{header, rows}` of **strings**.
    Everything is a string from here on: the engine's equality rule is defined over text,
    so letting SheetJS coerce types would make a value differ by which file it came from.
+   A `.csv` is decoded as UTF-8 here before SheetJS sees it — text has no encoding of its
+   own, and SheetJS otherwise guesses a legacy codepage for any file lacking a BOM, which
+   made an Excel export and a Google Sheets export of the same data differ on every
+   accented row.
 3. **Compare** — `app.ts` calls `engine.ts`'s `diffSheets`, which JSON-encodes both sheets,
    calls `sheetDelta.diff` (Go, in WASM), and decodes a `DiffResult`.
 4. **Render** — `grid.ts` draws the grid, `summary.ts` rolls the counters.
@@ -146,4 +151,3 @@ site is served from the `/sheet-delta` subpath, where a leading-slash path would
   but note that only the ~0.8s marshal is recoverable by returning indices instead of
   values. The input still has to be read. Meaningfully beating this means a leaner
   encoding across the boundary, not a faster algorithm, and that is a protocol change.
-- **Export (Story 12) is not built.**

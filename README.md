@@ -50,7 +50,7 @@ lit up. Rows that were only reordered stay quiet.
 - [x] Column insertion/removal handling (not just row alignment)
 - [x] Diff summary bar (rows added / removed / changed / moved, cells changed)
 - [x] Multi-sheet workbooks: pick which sheet to compare
-- [ ] Export the diff view as CSV or a shareable static HTML snapshot
+- [x] Export the diff view as CSV (a changed cell exports as `before -> after`)
 - [ ] Large-file performance tuning (50k rows diff correctly; see the backlog)
 
 ## Stack
@@ -91,10 +91,10 @@ compiled engine.
 
 ## Status
 
-Working end to end: drop two files and get the grid diff. The layout, the keyboard path and
-the compiled engine are verified in a real browser by `npm run test:browser`. Export is the
-one feature still unbuilt, and the large-sheet performance target is measured but unmet on
-slow hardware — see [`docs/BACKLOG.md`](docs/BACKLOG.md), and
+Feature complete: drop two files, get the grid diff, download it as CSV. The layout, the
+keyboard path, the download and the compiled engine are all verified in a real browser by
+`npm run test:browser`. The one open item is the large-sheet performance target, which is
+measured but unmet on slow hardware — see [`docs/BACKLOG.md`](docs/BACKLOG.md), and
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the code fits together.
 
 ## License
