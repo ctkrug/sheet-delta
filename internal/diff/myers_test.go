@@ -85,6 +85,46 @@ func TestAlignKeysMatchesNaiveLCSOnRandomSequences(t *testing.T) {
 	}
 }
 
+// A wide sheet against a narrow one is the case the equal-length random
+// trials never produce: the reverse search runs on diagonals offset by
+// delta = len(a)-len(b), so a lopsided pair pushes it far from the middle
+// of the vector. Sizing the vector for the sequence lengths alone left it
+// indexing behind the start, which panicked instead of diffing. Header rows
+// hit this in the wild: a sheet with trailing blank columns is mostly
+// duplicate empty keys, so nothing gets dropped as unmatchable.
+func TestAlignKeysHandlesLopsidedSequences(t *testing.T) {
+	// Two columns against twelve, sharing only "" and "1": the shape the
+	// fuzzer found.
+	a := []uint64{0, 1}
+	b := []uint64{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+	equals := checkScript(t, a, b, alignKeys(a, b))
+	if want := naiveLCSLen(a, b); equals != want {
+		t.Fatalf("matched %d, optimal is %d", equals, want)
+	}
+}
+
+// The same asymmetry, swept: whichever side is longer, and at every ratio
+// that changes which diagonal the search starts from.
+func TestAlignKeysMatchesNaiveLCSOnLopsidedRandomSequences(t *testing.T) {
+	rng := rand.New(rand.NewSource(11))
+	for _, alphabet := range []uint64{2, 3, 8} {
+		for _, lens := range [][2]int{{1, 12}, {12, 1}, {2, 12}, {12, 2}, {3, 25}, {25, 3}, {1, 40}, {40, 1}} {
+			for trial := 0; trial < 200; trial++ {
+				a := randKeys(rng, lens[0], alphabet)
+				b := randKeys(rng, lens[1], alphabet)
+
+				script := alignKeys(a, b)
+				equals := checkScript(t, a, b, script)
+				if want := naiveLCSLen(a, b); equals != want {
+					t.Fatalf("alphabet %d, %dx%d: matched %d rows, optimal is %d\n a=%v\n b=%v",
+						alphabet, lens[0], lens[1], equals, want, a, b)
+				}
+			}
+		}
+	}
+}
+
 func TestAlignKeysHandlesEmptyAndIdenticalSequences(t *testing.T) {
 	full := []uint64{1, 2, 3}
 

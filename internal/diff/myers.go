@@ -102,13 +102,23 @@ func myers(a, b []uint64) []edit {
 		b:   b,
 		out: make([]edit, 0, len(a)+len(b)),
 	}
-	// Both vectors are indexed by diagonal k in [-(n+m), n+m], offset to
-	// keep the index non-negative. Two vectors is the whole working set —
-	// this is where the linear space comes from.
-	size := 2*(len(a)+len(b)) + 3
+	// Both vectors are indexed by an absolute diagonal x-y, offset to keep
+	// the index non-negative. Two vectors is the whole working set — this is
+	// where the linear space comes from.
+	//
+	// The offset has to cover the furthest diagonal either search can reach.
+	// The forward search stays within ±maxD of diagonal 0, but the reverse
+	// search is centred on diagonal delta = n-m, so a lopsided pair puts its
+	// diagonals |delta| out from the middle: two columns against twelve
+	// reaches diagonal -18, which an offset sized for the lengths alone left
+	// behind the start of the vector. maxD is at most half the span, and
+	// |delta| at most the longer side; subregions of the recursion are
+	// smaller on both counts, so this bound serves every middleSnake call.
+	span := len(a) + len(b)
+	m.offset = max(len(a), len(b)) + span/2 + 2
+	size := 2*m.offset + 1
 	m.vf = make([]int, size)
 	m.vr = make([]int, size)
-	m.offset = len(a) + len(b) + 1
 	m.compare(0, len(a), 0, len(b))
 	return m.out
 }
