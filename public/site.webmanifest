@@ -1,7 +1,7 @@
 {
-  "name": "Sheet Delta",
-  "short_name": "Sheet Delta",
-  "description": "Cell-level diffs for CSV and Excel files, entirely in your browser.",
+  "name": "Redline",
+  "short_name": "Redline",
+  "description": "Compare two Excel or CSV files and highlight the cells that changed, in your browser.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f3efe4",
